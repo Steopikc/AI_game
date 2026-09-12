@@ -1,0 +1,85 @@
+<meta name="viewport"
+content="width=device-width,
+initial-scale=1.0,
+maximum-scale=1.0,
+user-scalable=no">
+<canvas id="canvas"></canvas>
+
+
+<!-- HUD -->
+
+<div id="ui">
+
+    <div id="health">
+        ❤️❤️❤️
+    </div>
+
+    <div id="score">
+        Убито: 0
+    </div>
+
+    <div id="wave">
+        Волна: 1 / 10
+    </div>
+
+</div>
+
+
+<!-- Сообщение -->
+
+<div id="waveMessage">
+    ВОЛНА 1
+</div>
+
+
+<!-- Джойстик -->
+
+<div id="joystick">
+
+    <div id="stick"></div>
+
+</div>
+
+
+<!-- Стрельба -->
+
+<div id="shootButtons">
+
+    <div id="up"
+         class="shoot">
+        ▲
+    </div>
+
+    <div id="left"
+         class="shoot">
+        ◀️
+    </div>
+
+    <div id="right"
+         class="shoot">
+        ▶️
+    </div>
+
+    <div id="down"
+         class="shoot">
+        ▼
+    </div>
+
+</div>
+
+
+<!-- GAME OVER -->
+
+<div id="gameOver">
+
+    <h1 id="gameOverTitle">
+        ТЫ УМЕР
+    </h1>
+
+    <p id="finalScore"></p>
+
+    <button id="restart">
+        Играть снова
+    </button>
+
+</div>
