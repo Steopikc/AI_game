@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Doodle Jump</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#eee;font-family:Arial,sans-serif}
+body{display:flex;justify-content:center;align-items:center}
+#game{position:relative;width:400px;height:700px;overflow:hidden;background:#fff;border:2px solid #222}
+canvas{width:100%;height:100%;display:block}
+#hud{position:absolute;top:12px;left:15px;z-index:5;font-size:22px;font-weight:bold;color:#111;text-shadow:1px 1px #fff,-1px -1px #fff,1px -1px #fff,-1px 1px #fff;pointer-events:none}
+#best{font-size:14px;color:#555}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(255,255,255,.94);z-index:20;text-align:center}
+#gameOver{display:none}
+.title{font-size:44px;font-weight:900;letter-spacing:-3px;margin-bottom:8px}
+.subtitle{color:#666;font-size:15px;margin-bottom:28px}
+button{padding:13px 30px;background:#fff;border:2px solid #111;border-radius:6px;font-size:18px;font-weight:bold;cursor:pointer;box-shadow:0 3px 0 #111}
+button:active{transform:translateY(3px);box-shadow:none}
+#mobileControls{position:absolute;bottom:15px;left:0;right:0;display:none;justify-content:space-between;padding:0 18px;z-index:10;pointer-events:none}
+.mobileButton{width:70px;height:70px;border-radius:50%;border:2px solid rgba(0,0,0,.25);background:rgba(255,255,255,.55);display:flex;justify-content:center;align-items:center;font-size:30px;color:rgba(0,0,0,.55);pointer-events:auto;user-select:none}
+@media(max-width:700px){#game{width:100vw;height:100vh;border:none}#mobileControls{display:flex}}
+</style>
+</head>
+<body>
+<div id="game">
+<canvas id="canvas"></canvas>
+<div id="hud"><div id="score">0</div><div id="best">BEST: 0</div></div>
+
+<div id="menu" class="screen">
+<div class="title">DOODLE JUMP</div>
+<div class="subtitle">← → или A / D для движения</div>
+<button id="startBtn">ИГРАТЬ</button>
+</div>
+
+<div id="gameOver" class="screen">
+<div class="title">GAME OVER</div>
+<div class="subtitle" id="finalScore">SCORE: 0</div>
+<button id="restartBtn">ЕЩЁ РАЗ</button>
+</div>
+
+<div id="mobileControls">
+<div class="mobileButton" id="left">←</div>
+<div class="mobileButton" id="right">→</div>
+</div>
+</div>
+
+<script>
+"use strict";
+
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
+const WIDTH=400, HEIGHT=700;
+
+function resizeCanvas(){
+ const dpr=Math.min(window.devicePixelRatio||1,2);
+ canvas.width=WIDTH*dpr;
+ canvas.height=HEIGHT*dpr;
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+resizeCanvas();
+window.addEventListener("resize",resizeCanvas);
+
+const menu=document.getElementById("menu");
+const gameOverScreen=document.getElementById("gameOver");
+const scoreElement=document.getElementById("score");
+const bestElement=document.getElementById("best");
+const finalScore=document.getElementById("finalScore");
+const startButton=document.getElementById("startBtn");
+const restartButton=document.getElementById("restartBtn");
+
+let running=false,score=0,cameraY=0,lastTime=0;
+let best=Number(localStorage.getItem("doodleJumpBest")||0);
+bestElement.textContent="BEST: "+best;
+
+const GRAVITY=.43,JUMP_POWER=-11.5,ACCELERATION=.65,MAX_SPEED=5.2,FRICTION=.86;
+const player={x:WIDTH/2-17,y:HEIGHT-100,width:34,height:42,vx:0,vy:0,squash:1,stretch:1,facing:1};
+const keys={left:false,right:false};
+
+window.addEventListener("keydown",e=>{
+ if(e.key==="ArrowLeft"||e.key.toLowerCase()==="a"){keys.left=true;e.preventDefault()}
+ if(e.key==="ArrowRight"||e.key.toLowerCase()==="d"){keys.right=true;e.preventDefault()}
+ if((e.key===" "||e.key==="Enter")&&!running)startGame();
+});
+window.addEventListener("keyup",e=>{
+ if(e.key==="ArrowLeft"||e.key.toLowerCase()==="a")keys.left=false;
+ if(e.key==="ArrowRight"||e.key.toLowerCase()==="d")keys.right=false;
+});
+
+function setupTouchButton(el,dir){
+ el.addEventListener("pointerdown",e=>{e.preventDefault();keys[dir]=true});
+ el.addEventListener("pointerup",e=>{e.preventDefault();keys[dir]=false});
+ el.addEventListener("pointercancel",()=>keys[dir]=false);
+ el.addEventListener("pointerleave",()=>keys[dir]=false);
+}
+setupTouchButton(document.getElementById("left"),"left");
+setupTouchButton(document.getElementById("right"),"right");
+
+const PLATFORM_HEIGHT=12,MIN_PLATFORM_WIDTH=58,MAX_PLATFORM_WIDTH=80;
+const MIN_GAP_Y=55,MAX_GAP_Y=82,MAX_HORIZONTAL_GAP=105;
+let platforms=[];
+
+function createPlatform(x,y,width){return{x,y,width,height:PLATFORM_HEIGHT}}
+
+function createReachablePlatform(previous){
+ const width=MIN_PLATFORM_WIDTH+Math.random()*(MAX_PLATFORM_WIDTH-MIN_PLATFORM_WIDTH);
+ const gapY=MIN_GAP_Y+Math.random()*(MAX_GAP_Y-MIN_GAP_Y);
+ const y=previous.y-gapY;
+ const previousCenter=previous.x+previous.width/2;
+ let center=previousCenter+(Math.random()*2-1)*MAX_HORIZONTAL_GAP;
+ const halfWidth=width/2;
+ center=Math.max(halfWidth+5,Math.min(WIDTH-halfWidth-5,center));
+ return createPlatform(center-halfWidth,y,width);
+}
+
+function generateInitialPlatforms(){
+ platforms=[];
+ let previous=createPlatform(WIDTH/2-45,HEIGHT-55,90);
+ platforms.push(previous);
+ for(let i=0;i<30;i++){
+  const next=createReachablePlatform(previous);
+  platforms.push(next);
+  previous=next;
+ }
+}
+
+function generateMorePlatforms(){
+ let highest=platforms[0];
+ for(const p of platforms)if(p.y<highest.y)highest=p;
+ let previous=highest;
+ for(let i=0;i<7;i++){
+  const next=createReachablePlatform(previous);
+  platforms.push(next);
+  previous=next;
+ }
+}
+
+function startGame(){
+ menu.style.display="none";
+ gameOverScreen.style.display="none";
+ score=0;cameraY=0;
+ player.x=WIDTH/2-player.width/2;
+ player.y=HEIGHT-100;
+ player.vx=0;player.vy=JUMP_POWER;
+ player.squash=1;player.stretch=1;
+ keys.left=false;keys.right=false;
+ generateInitialPlatforms();
+ scoreElement.textContent="0";
+ running=true;
+ lastTime=performance.now();
+ requestAnimationFrame(gameLoop);
+}
+
+function endGame(){
+ running=false;
+ if(score>best){
+  best=score;
+  localStorage.setItem("doodleJumpBest",best);
+ }
+ bestElement.textContent="BEST: "+best;
+ finalScore.textContent="SCORE: "+score;
+ gameOverScreen.style.display="flex";
+}
+startButton.addEventListener("click",startGame);
+restartButton.addEventListener("click",startGame);
+
+function update(dt){
+ const factor=Math.min(dt/16.666,2);
+
+ if(keys.left){player.vx-=ACCELERATION*factor;player.facing=-1}
+ if(keys.right){player.vx+=ACCELERATION*factor;player.facing=1}
+ if(!keys.left&&!keys.right)player.vx*=Math.pow(FRICTION,factor);
+ player.vx=Math.max(-MAX_SPEED,Math.min(MAX_SPEED,player.vx));
+ player.x+=player.vx*factor;
+
+ if(player.x>WIDTH)player.x=-player.width;
+ if(player.x+player.width<0)player.x=WIDTH;
+
+ const oldBottom=player.y+player.height;
+ player.vy+=GRAVITY*factor;
+ player.y+=player.vy*factor;
+
+ if(player.vy>0){
+  for(const platform of platforms){
+   const bottom=player.y+player.height;
+   const crossed=oldBottom<=platform.y;
+   const height=bottom>=platform.y&&bottom<=platform.y+18;
+   const horizontal=player.x+player.width>platform.x&&player.x<platform.x+platform.width;
+   if(crossed&&height&&horizontal){
+    player.y=platform.y-player.height;
+    player.vy=JUMP_POWER;
+    player.squash=.82;
+    player.stretch=1.15;
+    break;
+   }
+  }
+ }
+
+ const cameraTarget=player.y-HEIGHT*.42;
+ if(cameraTarget<cameraY)cameraY+=(cameraTarget-cameraY)*.12*factor;
+
+ const newScore=Math.max(0,Math.floor(-cameraY/10));
+ if(newScore>score){score=newScore;scoreElement.textContent=score}
+
+ let highest=platforms[0];
+ for(const p of platforms)if(p.y<highest.y)highest=p;
+ if(highest.y>cameraY-250)generateMorePlatforms();
+
+ platforms=platforms.filter(p=>p.y<cameraY+HEIGHT+100);
+
+ player.squash+=(1-player.squash)*.15;
+ player.stretch+=(1-player.stretch)*.15;
+
+ if(player.y-cameraY>HEIGHT+100)endGame();
+}
+
+function draw(){
+ ctx.clearRect(0,0,WIDTH,HEIGHT);
+ ctx.save();
+ ctx.translate(0,-cameraY);
+ drawBackground();
+ drawPlatforms();
+ drawPlayer();
+ ctx.restore();
+}
+
+function drawBackground(){
+ ctx.fillStyle="#fff";
+ ctx.fillRect(0,cameraY,WIDTH,HEIGHT);
+ ctx.strokeStyle="rgba(0,0,0,.035)";
+ ctx.lineWidth=1;
+ const startY=Math.floor(cameraY/25)*25;
+ for(let y=startY;y<cameraY+HEIGHT+30;y+=25){
+  ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(WIDTH,y);ctx.stroke();
+ }
+}
+
+function drawPlatforms(){
+ for(const p of platforms){
+  ctx.fillStyle="rgba(0,0,0,.12)";
+  roundRect(p.x+2,p.y+3,p.width,p.height,4);ctx.fill();
+
+  ctx.fillStyle="#62d44b";
+  roundRect(p.x,p.y,p.width,p.height,4);ctx.fill();
+
+  ctx.strokeStyle="#248d27";ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(p.x+3,p.y+1);ctx.lineTo(p.x+p.width-3,p.y+1);ctx.stroke();
+
+  ctx.strokeStyle="rgba(255,255,255,.4)";ctx.lineWidth=1;
+  for(let x=p.x+8;x<p.x+p.width-5;x+=12){
+   ctx.beginPath();ctx.moveTo(x,p.y+4);ctx.lineTo(x+5,p.y+9);ctx.stroke();
+  }
+ }
+}
+
+function drawPlayer(){
+ const cx=player.x+player.width/2,cy=player.y+player.height/2;
+ ctx.save();
+ ctx.translate(cx,cy);
+ ctx.scale(player.squash,player.stretch);
+
+ ctx.fillStyle="#62d63f";
+ ctx.strokeStyle="#111";ctx.lineWidth=2.5;
+ roundRect(-16,-19,32,36,8);ctx.fill();ctx.stroke();
+
+ ctx.fillStyle="#78e84e";
+ ctx.beginPath();ctx.arc(0,-13,13,0,Math.PI*2);ctx.fill();ctx.stroke();
+
+ ctx.fillStyle="#111";
+ ctx.beginPath();ctx.arc(-6,-15,2.5,0,Math.PI*2);ctx.fill();
+ ctx.beginPath();ctx.arc(6,-15,2.5,0,Math.PI*2);ctx.fill();
+
+ ctx.strokeStyle="#111";ctx.lineWidth=1.5;
+ ctx.beginPath();ctx.arc(0,-9,5,.15,Math.PI-.15);ctx.stroke();
+
+ ctx.lineWidth=3;
+ ctx.beginPath();ctx.moveTo(-9,14);ctx.lineTo(-14,22);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(9,14);ctx.lineTo(14,22);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(-14,-2);ctx.lineTo(-22,3);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(14,-2);ctx.lineTo(22,3);ctx.stroke();
+
+ ctx.restore();
+}
+
+function roundRect(x,y,width,height,radius){
+ radius=Math.min(radius,width/2,height/2);
+ ctx.beginPath();
+ ctx.moveTo(x+radius,y);
+ ctx.arcTo(x+width,y,x+width,y+height,radius);
+ ctx.arcTo(x+width,y+height,x,y+height,radius);
+ ctx.arcTo(x,y+height,x,y,radius);
+ ctx.arcTo(x,y,x+width,y,radius);
+ ctx.closePath();
+}
+
+function gameLoop(time){
+ if(!running){draw();return}
+ let dt=time-lastTime;
+ if(dt>50)dt=50;
+ lastTime=time;
+ update(dt);
+ draw();
+ if(running)requestAnimationFrame(gameLoop);
+}
+
+generateInitialPlatforms();
+draw();
+</script>
+</body>
+</html>
