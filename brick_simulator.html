@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Симулятор Кирпича</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1a1410;
+    color: #e8d9c0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    user-select: none;
+  }
+
+  header {
+    text-align: center;
+    padding: 20px 16px 6px;
+  }
+  header h1 {
+    font-size: 2.1rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    background: linear-gradient(90deg, #c45c26, #e8a87c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  header p {
+    color: #8a7a65;
+    font-size: 0.9rem;
+    margin-top: 4px;
+  }
+
+  /* GOAL BAR */
+  .goal-bar-wrap {
+    max-width: 900px;
+    margin: 10px auto 0;
+    padding: 0 16px;
+  }
+  .goal-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #8a7a65;
+    margin-bottom: 4px;
+  }
+  .goal-label strong { color: #e8a87c; }
+  .goal-bar {
+    height: 12px;
+    background: #2e241c;
+    border-radius: 6px;
+    border: 1px solid #3d2e22;
+    overflow: hidden;
+  }
+  .goal-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #c45c26, #e8a87c);
+    border-radius: 6px;
+    transition: width 0.35s ease;
+  }
+
+  .main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 14px 16px 40px;
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 18px;
+  }
+  @media (max-width: 720px) {
+    .main { grid-template-columns: 1fr; }
+  }
+
+  .playfield {
+    background: #241c16;
+    border: 2px solid #3d2e22;
+    border-radius: 16px;
+    height: 400px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.4);
+  }
+  .ground {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 48px;
+    background: linear-gradient(to top, #2a2118, #3d2e22);
+    border-top: 3px solid #5a4535;
+  }
+  .ground::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(90deg, transparent, transparent 20px, rgba(0,0,0,0.15) 20px, rgba(0,0,0,0.15) 22px);
+  }
+
+  .brick {
+    position: absolute;
+    width: 70px; height: 34px;
+    background: linear-gradient(180deg, #c45c26 0%, #a34a1c 40%, #8b3e16 100%);
+    border-radius: 3px;
+    box-shadow: inset 0 2px 0 rgba(255,200,150,0.35), inset 0 -3px 0 rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.4);
+    cursor: grab;
+    z-index: 5;
+  }
+  .brick::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 8px; right: 8px;
+    height: 1px;
+    background: rgba(0,0,0,0.25);
+    transform: translateY(-50%);
+  }
+  .brick::after {
+    content: '';
+    position: absolute;
+    top: 6px; bottom: 6px; left: 50%;
+    width: 1px;
+    background: rgba(0,0,0,0.2);
+  }
+  .brick:active { cursor: grabbing; }
+  .brick.main { width: 90px; height: 44px; z-index: 10; }
+  .brick.flying { box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
+
+  .thought {
+    position: absolute;
+    background: #2e241c;
+    border: 1px solid #5a4535;
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    color: #d4c4a8;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 20;
+    max-width: 180px;
+    text-align: center;
+  }
+  .thought.show { opacity: 1; }
+
+  .panel { display: flex; flex-direction: column; gap: 12px; }
+  .card {
+    background: #241c16;
+    border: 1px solid #3d2e22;
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .card h3 {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #8a7a65;
+    margin-bottom: 8px;
+  }
+  .stat {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 0.92rem;
+  }
+  .stat .val { color: #e8a87c; font-weight: 700; }
+
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 11px;
+    margin-top: 7px;
+    border: 1px solid #5a4535;
+    border-radius: 10px;
+    background: #2e241c;
+    color: #e8d9c0;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.15s;
+  }
+  .btn:hover:not(:disabled) { background: #3d2e22; border-color: #c45c26; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn.primary {
+    background: linear-gradient(135deg, #c45c26, #a34a1c);
+    border-color: #e8a87c;
+    color: #fff;
+  }
+  .btn.primary:hover:not(:disabled) { filter: brightness(1.1); }
+
+  .upgrade {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 0;
+    border-bottom: 1px solid #2e241c;
+    font-size: 0.85rem;
+  }
+  .upgrade:last-child { border-bottom: none; }
+  .upgrade .info { flex: 1; }
+  .upgrade .name { font-weight: 600; color: #e8d9c0; }
+  .upgrade .desc { font-size: 0.72rem; color: #8a7a65; }
+  .upgrade .price { color: #e8a87c; font-weight: 700; white-space: nowrap; }
+
+  .log {
+    max-height: 100px;
+    overflow-y: auto;
+    font-size: 0.78rem;
+    color: #8a7a65;
+    line-height: 1.4;
+  }
+  .log div { margin-bottom: 3px; }
+
+  .milestone {
+    font-size: 0.8rem;
+    color: #a89070;
+    padding: 4px 0;
+  }
+  .milestone.done { color: #6a9e6a; }
+  .milestone.done::before { content: '✓ '; }
+
+  /* VICTORY OVERLAY */
+  #victory {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(10, 8, 6, 0.92);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    padding: 24px;
+  }
+  #victory.show { display: flex; }
+  #victory h2 {
+    font-size: 2.4rem;
+    background: linear-gradient(90deg, #c45c26, #e8a87c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+  }
+  #victory .result {
+    font-size: 1.1rem;
+    color: #d4c4a8;
+    max-width: 420px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+  #victory .stats-final {
+    background: #241c16;
+    border: 1px solid #3d2e22;
+    border-radius: 12px;
+    padding: 16px 24px;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+  }
+  #victory .stats-final div { margin: 4px 0; }
+  #victory .stats-final span { color: #e8a87c; font-weight: 700; }
+
+  footer {
+    text-align: center;
+    padding: 12px;
+    color: #5a4535;
+    font-size: 0.78rem;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🧱 СИМУЛЯТОР КИРПИЧА</h1>
+  <p>Цель: стать Абсолютным Кирпичом</p>
+</header>
+
+<div class="goal-bar-wrap">
+  <div class="goal-label">
+    <span>Прогресс к просветлению</span>
+    <strong id="goalPct">0%</strong>
+  </div>
+  <div class="goal-bar"><div class="goal-fill" id="goalFill"></div></div>
+</div>
+
+<div class="main">
+  <div class="playfield" id="field">
+    <div class="ground"></div>
+  </div>
+
+  <div class="panel">
+    <div class="card">
+      <h3>Статус кирпича</h3>
+      <div class="stat">Кирпичность: <span class="val" id="brickness">1</span></div>
+      <div class="stat">Мысли: <span class="val" id="thoughts">0</span></div>
+      <div class="stat">Кирпичей: <span class="val" id="brickCount">1</span></div>
+      <div class="stat">Время бытия: <span class="val" id="time">0с</span></div>
+      <button class="btn primary" id="btnThink">Подумать как кирпич</button>
+      <button class="btn" id="btnThrow">Подбросить себя</button>
+    </div>
+
+    <div class="card">
+      <h3>Цель</h3>
+      <div class="milestone" id="m1">Набрать 50 мыслей</div>
+      <div class="milestone" id="m2">Кирпичность 5</div>
+      <div class="milestone" id="m3">Иметь 4 кирпича</div>
+      <div class="milestone" id="m4">Набрать 300 мыслей</div>
+      <div class="milestone" id="m5">Достичь Абсолютного Кирпича</div>
+    </div>
+
+    <div class="card">
+      <h3>Улучшения</h3>
+      <div id="upgrades"></div>
+    </div>
+
+    <div class="card">
+      <h3>Дневник кирпича</h3>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+</div>
+
+<footer>Ты — кирпич. И у тебя есть цель.</footer>
+
+<!-- VICTORY -->
+<div id="victory">
+  <h2>🧱 АБСОЛЮТНЫЙ КИРПИЧ</h2>
+  <div class="result" id="victoryText">
+    Ты постиг суть прямоугольности.<br>
+    Больше нечего желать. Ты — идеальная форма.
+  </div>
+  <div class="stats-final" id="finalStats"></div>
+  <button class="btn primary" id="btnAgain" style="max-width:220px">Быть кирпичом заново</button>
+</div>
+
+<script>
+(() => {
+  const field = document.getElementById('field');
+  const GROUND_Y = 400 - 48;
+
+  // ===== GOAL =====
+  // Progress is calculated from multiple factors toward "Absolute Brick"
+  const GOAL_THOUGHTS = 300;
+  const GOAL_BRICKNESS = 5;
+  const GOAL_BRICKS = 4;
+
+  let thoughts = 0;
+  let brickness = 1;
+  let totalBricks = 1;
+  let startTime = Date.now();
+  let thinkPower = 1;
+  let autoThink = 0;
+  let gravity = 1800;
+  let bounce = 0.35;
+  let won = false;
+  let milestones = { m1: false, m2: false, m3: false, m4: false, m5: false };
+
+  const bricks = [];
+  const thoughtsList = [
+    "Я существую.",
+    "Красный... или оранжевый?",
+    "Холодно лежать на земле.",
+    "Интересно, есть ли жизнь после стройки?",
+    "Я твёрдый. Это факт.",
+    "Сколько весит душа кирпича?",
+    "Глина была вкусной.",
+    "Меня обжигали при 1000°C. Я выжил.",
+    "Соседи сверху давят.",
+    "Я часть чего-то большего. Наверное, стены.",
+    "Пыль — мой лучший друг.",
+    "Иногда я мечтаю стать бетоном.",
+    "Прямоугольность — моя суперсила.",
+    "Вчера мне снилась глина.",
+    "Я не двигаюсь. И горжусь этим.",
+    "Кирпич — это состояние души.",
+    "Ещё один день без мыслей. Идеально.",
+    "Кто-то наступил. Неприятно.",
+    "Я держал целые здания. Скромно.",
+    "Быть кирпичом — это дзен.",
+    "Я чувствую прогресс.",
+    "Ещё немного — и я стану идеальным.",
+    "Форма определяет содержание.",
+    "Я почти Абсолютный Кирпич."
+  ];
+
+  const upgrades = [
+    { id: 'think', name: 'Глубокая мысль', desc: '+1 мысль за клик', base: 15, level: 0,
+      effect: () => { thinkPower += 1; } },
+    { id: 'auto', name: 'Авто-медитация', desc: 'Автоматически думать', base: 50, level: 0,
+      effect: () => { autoThink += 0.5; } },
+    { id: 'brickness', name: 'Больше кирпичности', desc: '+1 к кирпичности', base: 30, level: 0,
+      effect: () => { brickness += 1; } },
+    { id: 'clone', name: 'Размножение', desc: 'Ещё один кирпич', base: 80, level: 0,
+      effect: () => { spawnBrick(false); totalBricks++; } },
+    { id: 'bounce', name: 'Упругость', desc: 'Прыгают выше', base: 60, level: 0,
+      effect: () => { bounce = Math.min(0.85, bounce + 0.1); } },
+    { id: 'heavy', name: 'Тяжесть бытия', desc: 'Сильнее гравитация', base: 40, level: 0,
+      effect: () => { gravity += 400; } }
+  ];
+
+  function priceOf(u) {
+    return Math.floor(u.base * Math.pow(1.55, u.level));
+  }
+
+  // ===== BRICK =====
+  class Brick {
+    constructor(main = false) {
+      this.el = document.createElement('div');
+      this.el.className = 'brick' + (main ? ' main' : '');
+      field.appendChild(this.el);
+      this.w = main ? 90 : 70;
+      this.h = main ? 44 : 34;
+      this.x = 120 + Math.random() * 220;
+      this.y = 60 + Math.random() * 50;
+      this.vx = 0; this.vy = 0;
+      this.dragging = false;
+      this.main = main;
+      this.ox = 0; this.oy = 0;
+      this.el.addEventListener('pointerdown', e => this.onDown(e));
+      this.updatePos();
+    }
+    onDown(e) {
+      e.preventDefault();
+      this.dragging = true;
+      this.el.setPointerCapture(e.pointerId);
+      const rect = field.getBoundingClientRect();
+      this.ox = e.clientX - rect.left - this.x;
+      this.oy = e.clientY - rect.top - this.y;
+      this.vx = 0; this.vy = 0;
+      const move = ev => {
+        if (!this.dragging) return;
+        const r = field.getBoundingClientRect();
+        this.x = ev.clientX - r.left - this.ox;
+        this.y = ev.clientY - r.top - this.oy;
+        this.updatePos();
+      };
+      const up = ev => {
+        this.dragging = false;
+        this.el.releasePointerCapture(ev.pointerId);
+        field.removeEventListener('pointermove', move);
+        field.removeEventListener('pointerup', up);
+      };
+      field.addEventListener('pointermove', move);
+      field.addEventListener('pointerup', up);
+    }
+    updatePos() {
+      this.el.style.left = this.x + 'px';
+      this.el.style.top = this.y + 'px';
+    }
+    update(dt) {
+      if (this.dragging) return;
+      this.vy += gravity * dt;
+      this.x += this.vx * dt;
+      this.y += this.vy * dt;
+      if (this.y + this.h > GROUND_Y) {
+        this.y = GROUND_Y - this.h;
+        this.vy *= -bounce;
+        this.vx *= 0.92;
+        if (Math.abs(this.vy) < 40) this.vy = 0;
+      }
+      if (this.x < 0) { this.x = 0; this.vx *= -0.5; }
+      if (this.x + this.w > field.clientWidth) {
+        this.x = field.clientWidth - this.w;
+        this.vx *= -0.5;
+      }
+      for (const other of bricks) {
+        if (other === this) continue;
+        if (this.overlaps(other)) {
+          const overlapY = (this.y + this.h) - other.y;
+          if (overlapY > 0 && overlapY < this.h && this.vy >= 0) {
+            this.y = other.y - this.h;
+            this.vy *= -bounce * 0.6;
+            this.vx *= 0.9;
+            if (Math.abs(this.vy) < 30) this.vy = 0;
+          }
+        }
+      }
+      this.updatePos();
+      this.el.classList.toggle('flying', Math.abs(this.vy) > 50 || Math.abs(this.vx) > 50);
+    }
+    overlaps(o) {
+      return this.x < o.x + o.w && this.x + this.w > o.x &&
+             this.y < o.y + o.h && this.y + this.h > o.y;
+    }
+    throwUp() {
+      this.vy = -900 - Math.random() * 400;
+      this.vx = (Math.random() - 0.5) * 500;
+    }
+  }
+
+  function spawnBrick(main = false) {
+    const b = new Brick(main);
+    bricks.push(b);
+    return b;
+  }
+
+  const mainBrick = spawnBrick(true);
+
+  // ===== UI =====
+  function log(msg) {
+    const el = document.getElementById('log');
+    const d = document.createElement('div');
+    d.textContent = '• ' + msg;
+    el.prepend(d);
+    if (el.children.length > 25) el.lastChild.remove();
+  }
+
+  function showThought(text) {
+    const t = document.createElement('div');
+    t.className = 'thought';
+    t.textContent = text;
+    field.appendChild(t);
+    const b = mainBrick;
+    t.style.left = Math.max(4, b.x + b.w / 2 - 70) + 'px';
+    t.style.top = Math.max(4, b.y - 48) + 'px';
+    requestAnimationFrame(() => t.classList.add('show'));
+    setTimeout(() => {
+      t.classList.remove('show');
+      setTimeout(() => t.remove(), 300);
+    }, 2200);
+  }
+
+  function renderUpgrades() {
+    const box = document.getElementById('upgrades');
+    box.innerHTML = '';
+    upgrades.forEach(u => {
+      const price = priceOf(u);
+      const div = document.createElement('div');
+      div.className = 'upgrade';
+      div.innerHTML = `
+        <div class="info">
+          <div class="name">${u.name} <span style="color:#8a7a65">Lv.${u.level}</span></div>
+          <div class="desc">${u.desc}</div>
+        </div>
+        <div>
+          <div class="price">${price} 💭</div>
+          <button class="btn" style="padding:5px 9px;margin:3px 0 0;width:auto;font-size:0.78rem"
+            ${thoughts < price || won ? 'disabled' : ''} data-id="${u.id}">Купить</button>
+        </div>`;
+      box.appendChild(div);
+    });
+    box.querySelectorAll('button[data-id]').forEach(btn => {
+      btn.onclick = () => buy(btn.dataset.id);
+    });
+  }
+
+  function buy(id) {
+    if (won) return;
+    const u = upgrades.find(x => x.id === id);
+    const price = priceOf(u);
+    if (thoughts < price) return;
+    thoughts -= price;
+    u.level++;
+    u.effect();
+    log(`Куплено: ${u.name}`);
+    updateUI();
+    checkProgress();
+    renderUpgrades();
+  }
+
+  function calcProgress() {
+    // Weighted progress toward Absolute Brick
+    const tPart = Math.min(1, thoughts / GOAL_THOUGHTS) * 0.45;
+    const bPart = Math.min(1, brickness / GOAL_BRICKNESS) * 0.25;
+    const cPart = Math.min(1, totalBricks / GOAL_BRICKS) * 0.15;
+    // time bonus (up to 15% for playing a bit)
+    const sec = (Date.now() - startTime) / 1000;
+    const timePart = Math.min(1, sec / 120) * 0.15;
+    return Math.min(1, tPart + bPart + cPart + timePart);
+  }
+
+  function checkProgress() {
+    const pct = calcProgress();
+    document.getElementById('goalFill').style.width = (pct * 100) + '%';
+    document.getElementById('goalPct').textContent = Math.floor(pct * 100) + '%';
+
+    // milestones
+    if (!milestones.m1 && thoughts >= 50) {
+      milestones.m1 = true;
+      document.getElementById('m1').classList.add('done');
+      log('Вехи: набрано 50 мыслей!');
+    }
+    if (!milestones.m2 && brickness >= 5) {
+      milestones.m2 = true;
+      document.getElementById('m2').classList.add('done');
+      log('Вехи: кирпичность 5!');
+    }
+    if (!milestones.m3 && totalBricks >= 4) {
+      milestones.m3 = true;
+      document.getElementById('m3').classList.add('done');
+      log('Вехи: целая кучка кирпичей!');
+    }
+    if (!milestones.m4 && thoughts >= 300) {
+      milestones.m4 = true;
+      document.getElementById('m4').classList.add('done');
+      log('Вехи: 300 мыслей. Почти просветление...');
+    }
+
+    // WIN condition: high progress + key thresholds
+    if (!won && thoughts >= GOAL_THOUGHTS && brickness >= GOAL_BRICKNESS && totalBricks >= GOAL_BRICKS) {
+      win();
+    }
+  }
+
+  function win() {
+    won = true;
+    milestones.m5 = true;
+    document.getElementById('m5').classList.add('done');
+    document.getElementById('goalFill').style.width = '100%';
+    document.getElementById('goalPct').textContent = '100%';
+
+    const sec = Math.floor((Date.now() - startTime) / 1000);
+    const m = Math.floor(sec / 60);
+    const timeStr = m > 0 ? `${m} мин ${sec % 60} сек` : `${sec} сек`;
+
+    document.getElementById('finalStats').innerHTML = `
+      <div>Мысли: <span>${Math.floor(thoughts)}</span></div>
+      <div>Кирпичность: <span>${brickness}</span></div>
+      <div>Кирпичей: <span>${totalBricks}</span></div>
+      <div>Время бытия: <span>${timeStr}</span></div>
+    `;
+
+    const endings = [
+      'Ты постиг суть прямоугольности. Больше нечего желать. Ты — идеальная форма.',
+      'Глина, огонь и время сделали своё дело. Теперь ты — Абсолютный Кирпич.',
+      'Все здания мира склоняются перед твоей геометрией. Миссия выполнена.',
+      'Ты больше не просто кирпич. Ты — концепция. Ты — идея. Ты — стена.'
+    ];
+    document.getElementById('victoryText').textContent = endings[Math.floor(Math.random() * endings.length)];
+    document.getElementById('victory').classList.add('show');
+    log('★★★ АБСОЛЮТНЫЙ КИРПИЧ ДОСТИГНУТ ★★★');
+  }
+
+  function updateUI() {
+    document.getElementById('thoughts').textContent = Math.floor(thoughts);
+    document.getElementById('brickness').textContent = brickness;
+    document.getElementById('brickCount').textContent = totalBricks;
+    const sec = Math.floor((Date.now() - startTime) / 1000);
+    const m = Math.floor(sec / 60);
+    document.getElementById('time').textContent = m > 0 ? `${m}м ${sec % 60}с` : `${sec}с`;
+  }
+
+  document.getElementById('btnThink').onclick = () => {
+    if (won) return;
+    thoughts += thinkPower * brickness;
+    const phrase = thoughtsList[Math.floor(Math.random() * thoughtsList.length)];
+    showThought(phrase);
+    log(phrase);
+    updateUI();
+    checkProgress();
+    renderUpgrades();
+  };
+
+  document.getElementById('btnThrow').onclick = () => {
+    mainBrick.throwUp();
+    log('Кирпич подброшен. Он не понимает зачем.');
+  };
+
+  document.getElementById('btnAgain').onclick = () => location.reload();
+
+  // ===== LOOP =====
+  let last = performance.now();
+  let autoAcc = 0;
+
+  function loop(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+
+    for (const b of bricks) b.update(dt);
+
+    if (!won && autoThink > 0) {
+      autoAcc += autoThink * dt;
+      if (autoAcc >= 1) {
+        const add = Math.floor(autoAcc);
+        thoughts += add * brickness;
+        autoAcc -= add;
+        updateUI();
+        checkProgress();
+        renderUpgrades();
+      }
+    }
+
+    if (Math.floor(now / 1000) !== Math.floor((now - dt * 1000) / 1000)) {
+      updateUI();
+      checkProgress();
+    }
+
+    requestAnimationFrame(loop);
+  }
+
+  renderUpgrades();
+  updateUI();
+  checkProgress();
+  log('Кирпич появился. Цель: стать Абсолютным Кирпичом.');
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
