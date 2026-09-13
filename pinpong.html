@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Пинг-Понг — 2 игрока</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#070b14;color:#fff;font-family:Arial,sans-serif;touch-action:none}
+body{display:flex;align-items:center;justify-content:center}
+#wrap{width:min(100vw,1000px);height:min(100vh,650px);position:relative}
+canvas{display:block;width:100%;height:100%;background:#0b1220;border:2px solid #26344f;border-radius:14px;box-shadow:0 0 40px #000}
+#menu,#over{
+ position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+ background:rgba(5,8,16,.92);border-radius:14px;text-align:center
+}
+#over{display:none}
+h1{font-size:42px;margin:0 0 10px}
+p{color:#aab7cf;margin:7px}
+button{
+ margin-top:20px;padding:14px 34px;border:0;border-radius:12px;
+ background:linear-gradient(135deg,#4f8cff,#8b5cf6);color:white;font-size:18px;font-weight:bold;cursor:pointer
+}
+#info{position:absolute;top:14px;left:50%;transform:translateX(-50%);font-size:13px;color:#93a4c4;z-index:2}
+.score{font-size:58px;font-weight:bold;opacity:.9}
+</style>
+</head>
+<body>
+<div id="wrap">
+<canvas id="game"></canvas>
+<div id="info">Игрок 1: W / S &nbsp; • &nbsp; Игрок 2: ↑ / ↓</div>
+
+<div id="menu">
+  <h1>🏓 ПИНГ-ПОНГ</h1>
+  <p>Игра для двух игроков на одном компьютере</p>
+  <p>Игрок 1 — W / S /</p>
+  <p>Игрок 2 — ↑ / ↓</p>
+  <button id="start">НАЧАТЬ ИГРУ</button>
+</div>
+
+<div id="over">
+  <div class="score" id="finalScore">0 : 0</div>
+  <h1 id="winner">ПОБЕДА!</h1>
+  <button id="again">ИГРАТЬ СНОВА</button>
+</div>
+</div>
+
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+
+let W=1000,H=650;
+const paddle={w:16,h:110,speed:8};
+let p1,p2,ball,score1=0,score2=0,running=false;
+
+function resize(){
+  const r=canvas.getBoundingClientRect();
+  const d=Math.min(devicePixelRatio||1,2);
+  canvas.width=Math.floor(r.width*d);
+  canvas.height=Math.floor(r.height*d);
+  W=r.width; H=r.height;
+  ctx.setTransform(d,0,0,d,0,0);
+  if(!running) resetBall();
+}
+window.addEventListener("resize",resize);
+
+const keys={w:false,s:false,up:false,down:false};
+document.addEventListener("keydown",e=>{
+  if(["ArrowUp","ArrowDown"," "].includes(e.key)) e.preventDefault();
+  if(e.key.toLowerCase()==="w")keys.w=true;
+  if(e.key.toLowerCase()==="s")keys.s=true;
+  if(e.key==="ArrowUp")keys.up=true;
+  if(e.key==="ArrowDown")keys.down=true;
+});
+document.addEventListener("keyup",e=>{
+  if(e.key.toLowerCase()==="w")keys.w=false;
+  if(e.key.toLowerCase()==="s")keys.s=false;
+  if(e.key==="ArrowUp")keys.up=false;
+  if(e.key==="ArrowDown")keys.down=false;
+});
+
+function resetBall(dir=Math.random()<.5?-1:1){
+  const speed = 3.2;
+  ball={x:W/2,y:H/2,r:9,vx:dir*speed,vy:(Math.random()-.5)*3.8};
+}
+function resetGame(){
+  p1={x:30,y:H/2-paddle.h/2};
+  p2={x:W-46,y:H/2-paddle.h/2};
+  score1=score2=0;
+  resetBall();
+}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+
+function hit(p){
+  return ball.x-ball.r<p.x+paddle.w &&
+         ball.x+ball.r>p.x &&
+         ball.y+ball.r>p.y &&
+         ball.y-ball.r<p.y+paddle.h;
+}
+
+function update(){
+  if(!running)return;
+  if(keys.w)p1.y-=paddle.speed;
+  if(keys.s)p1.y+=paddle.speed;
+  if(keys.up)p2.y-=paddle.speed;
+  if(keys.down)p2.y+=paddle.speed;
+  p1.y=clamp(p1.y,0,H-paddle.h);
+  p2.y=clamp(p2.y,0,H-paddle.h);
+
+  // Очень плавное ускорение: чем дольше розыгрыш, тем быстрее мяч.
+  const currentSpeed = Math.hypot(ball.vx, ball.vy);
+  const targetSpeed = Math.min(5.2, currentSpeed + 0.0000001);
+  if(currentSpeed > 0){
+    const k = targetSpeed / currentSpeed;
+    ball.vx *= k;
+    ball.vy *= k;
+  }
+
+  ball.x+=ball.vx;
+  ball.y+=ball.vy;
+
+  if(ball.y-ball.r<=0){ball.y=ball.r;ball.vy=Math.abs(ball.vy)}
+  if(ball.y+ball.r>=H){ball.y=H-ball.r;ball.vy=-Math.abs(ball.vy)}
+
+  if(hit(p1)&&ball.vx<0){
+    const rel=(ball.y-(p1.y+paddle.h/2))/(paddle.h/2);
+    ball.vx=Math.min(5.2,Math.abs(ball.vx)*1.0001);
+    ball.vy=rel*5.8;
+    ball.x=p1.x+paddle.w+ball.r;
+  }
+  if(hit(p2)&&ball.vx>0){
+    const rel=(ball.y-(p2.y+paddle.h/2))/(paddle.h/2);
+    ball.vx=-Math.min(5.2,Math.abs(ball.vx)*1.0001);
+    ball.vy=rel*5.8;
+    ball.x=p2.x-ball.r;
+  }
+
+  if(ball.x<0){score2++;point(1)}
+  if(ball.x>W){score1++;point(-1)}
+}
+
+function point(dir){
+  if(score1>=7||score2>=7){
+    running=false;
+    document.getElementById("finalScore").textContent=`${score1} : ${score2}`;
+    document.getElementById("winner").textContent=score1>score2?"ИГРОК 1 ПОБЕДИЛ!":"ИГРОК 2 ПОБЕДИЛ!";
+    document.getElementById("over").style.display="flex";
+    return;
+  }
+  resetBall(dir);
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+
+  ctx.fillStyle="#0b1220";ctx.fillRect(0,0,W,H);
+
+  // subtle court glow
+  const g=ctx.createRadialGradient(W/2,H/2,20,W/2,H/2,H*.75);
+  g.addColorStop(0,"rgba(50,90,170,.18)");
+  g.addColorStop(1,"rgba(0,0,0,0)");
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+
+  // center line
+  ctx.setLineDash([12,16]);
+  ctx.strokeStyle="rgba(180,200,240,.25)";
+  ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(W/2,25);ctx.lineTo(W/2,H-25);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // paddles
+  ctx.shadowBlur=18;
+  ctx.shadowColor="#4f8cff";
+  ctx.fillStyle="#65a8ff";
+  roundRect(p1.x,p1.y,paddle.w,paddle.h,7);ctx.fill();
+
+  ctx.shadowColor="#b77cff";
+  ctx.fillStyle="#a878ff";
+  roundRect(p2.x,p2.y,paddle.w,paddle.h,7);ctx.fill();
+
+  // ball
+  ctx.shadowColor="#fff";ctx.shadowBlur=20;
+  ctx.fillStyle="#fff";
+  ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fill();
+  ctx.shadowBlur=0;
+
+  // score
+  ctx.font="bold 58px Arial";ctx.textAlign="center";ctx.fillStyle="rgba(255,255,255,.82)";
+  ctx.fillText(score1,W/2-75,75);
+  ctx.fillText(score2,W/2+75,75);
+
+  // mobile touch zones
+  if(W<700){
+    ctx.font="12px Arial";ctx.fillStyle="rgba(255,255,255,.22)";
+    ctx.fillText("ЛЕВО: Игрок 1",W*.25,H-14);
+    ctx.fillText("ПРАВО: Игрок 2",W*.75,H-14);
+  }
+}
+
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+
+// Mobile: each half of the screen controls its paddle by finger position.
+function touchControl(e){
+  if(!running)return;
+  const rect=canvas.getBoundingClientRect();
+  for(const t of e.touches){
+    const x=t.clientX-rect.left, y=t.clientY-rect.top;
+    if(x<W/2)p1.y=clamp(y-paddle.h/2,0,H-paddle.h);
+    else p2.y=clamp(y-paddle.h/2,0,H-paddle.h);
+  }
+}
+canvas.addEventListener("touchstart",e=>{e.preventDefault();touchControl(e)},{passive:false});
+canvas.addEventListener("touchmove",e=>{e.preventDefault();touchControl(e)},{passive:false});
+
+document.getElementById("start").onclick=()=>{
+  document.getElementById("menu").style.display="none";
+  document.getElementById("over").style.display="none";
+  resetGame();running=true;
+};
+document.getElementById("again").onclick=()=>{
+  document.getElementById("over").style.display="none";
+  resetGame();running=true;
+};
+
+resize();
+resetGame();
+
+function loop(){
+  update();draw();requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
