@@ -6,6 +6,20 @@
   <title>HTML Games Platform</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    .game-cover.green   { background: linear-gradient(135deg, #0d3b2e, #1a5c45); }
+.game-cover.blue    { background: linear-gradient(135deg, #1a2a4a, #2a4a7a); }
+.game-cover.purple  { background: linear-gradient(135deg, #2e1a4a, #4a2a7a); }
+.game-cover.pink    { background: linear-gradient(135deg, #3b1a2e, #5c2a45); }
+.game-cover.orange  { background: linear-gradient(135deg, #3b2e1a, #5c4a2a); }
+.game-cover.red     { background: linear-gradient(135deg, #4a1515, #7a2525); }
+.game-cover.cyan    { background: linear-gradient(135deg, #0d3b3b, #1a5c5c); }
+.game-cover.indigo  { background: linear-gradient(135deg, #1a1a4a, #2a2a7a); }
+.game-cover.teal    { background: linear-gradient(135deg, #0d2e3b, #1a4a5c); }
+.game-cover.gold    { background: linear-gradient(135deg, #3b2e0d, #5c4a1a); }
+.game-cover.gray    { background: linear-gradient(135deg, #2a2a2e, #3d3d45); }
+.game-cover.lime    { background: linear-gradient(135deg, #1a3b0d, #2a5c1a); }
+.game-cover.rose    { background: linear-gradient(135deg, #3b1a2a, #5c2a3d); }
+.game-cover.navy    { background: linear-gradient(135deg, #0d1a2e, #1a2a4a); }
 
     body {
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -150,8 +164,8 @@
 
   <div id="menu">
     <header>
-      <h1>HTML Games Platform</h1>
-      <p>Коллекция игр на чистом HTML + CSS + JavaScript</p>
+      <h1>AI Games</h1>
+      <p>Игры на любой вкус</p>
     </header>
 
     <div class="games-grid" id="games-list"></div>
@@ -206,6 +220,14 @@
         file: "pinpong.html",
         coverClass: "purple",
         emoji: "🏓"
+      },
+      {
+        id: "Brick Simulator",
+        title: "Brick Simulator",
+        description: "Симулятор кирпича - фильсофа",
+        file: "brick_simulator.html",
+        coverClass: "navy",
+        emoji: "🧱"
       }
     ];
 
