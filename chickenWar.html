@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>🐔 Куриный Апокалипсис 3D</title>
+<style>
+  body { margin: 0; overflow: hidden; background: #87CEEB; font-family: 'Comic Sans MS', cursive; }
+  #info {
+    position: absolute; top: 15px; left: 15px; color: white;
+    text-shadow: 3px 3px 0 #000, -1px -1px 0 #000;
+    font-size: 22px; z-index: 100; pointer-events: none;
+  }
+  #crosshair {
+    position: absolute; top: 50%; left: 50%;
+    width: 30px; height: 30px; margin: -15px 0 0 -15px;
+    border: 3px solid rgba(255,255,255,0.8); border-radius: 50%;
+    box-shadow: 0 0 10px #000; pointer-events: none; z-index: 100;
+  }
+  #crosshair::before, #crosshair::after {
+    content: ''; position: absolute; background: white;
+  }
+  #crosshair::before { width: 100%; height: 2px; top: 50%; left: 0; margin-top: -1px; }
+  #crosshair::after { width: 2px; height: 100%; left: 50%; top: 0; margin-left: -1px; }
+  #startScreen {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.85);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: #FFD700; z-index: 200; text-align: center;
+  }
+  #startScreen h1 { font-size: 60px; margin: 0; text-shadow: 5px 5px 0 #8B0000; }
+  #startScreen p { font-size: 22px; color: #fff; max-width: 600px; }
+  #startScreen button {
+    font-size: 28px; padding: 15px 40px; margin-top: 20px;
+    background: #FFD700; border: 4px solid #8B0000; color: #8B0000;
+    font-family: inherit; font-weight: bold; cursor: pointer; border-radius: 10px;
+  }
+  #startScreen button:hover { background: #FFA500; transform: scale(1.05); }
+  #hitFlash {
+    position: absolute; inset: 0; background: red; opacity: 0;
+    pointer-events: none; z-index: 90; transition: opacity 0.3s;
+  }
+  #funnyText {
+    position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+    color: #FFD700; font-size: 32px; text-shadow: 3px 3px 0 #000;
+    z-index: 100; pointer-events: none; opacity: 0; transition: opacity 0.5s;
+  }
+</style>
+</head>
+<body>
+
+<div id="info">
+  🥚 Яиц: <span id="score">0</span> &nbsp;|&nbsp;
+  🐔 HP: <span id="hp">100</span> &nbsp;|&nbsp;
+  💀 Убито: <span id="kills">0</span>
+</div>
+<div id="crosshair"></div>
+<div id="hitFlash"></div>
+<div id="funnyText"></div>
+
+<div id="startScreen">
+  <h1>🐔 КУРИНЫЙ АПОКАЛИПСИС 🥚</h1>
+  <p>Зомби-фермеры захватили курятник! Ты — последняя боевая курица.
+  Стреляй яйцами, отбивайся и не дай себя ощипать!</p>
+  <p><b>WASD</b> — движение &nbsp;|&nbsp; <b>Мышь</b> — прицел &nbsp;|&nbsp; <b>ЛКМ</b> — кинуть яйцо &nbsp;|&nbsp; <b>Пробел</b> — прыжок</p>
+  <button onclick="startGame()">НАЧАТЬ КУРИНУЮ ВОЙНУ!</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ====== ИНИЦИАЛИЗАЦИЯ ======
+let scene, camera, renderer, clock;
+let player, playerYaw, playerPitch;
+let keys = {};
+let eggs = [], zombies = [], bloodParticles = [];
+let score = 0, kills = 0, hp = 100;
+let gameRunning = false;
+let lastShot = 0;
+let lastZombieSpawn = 0;
+let cameraShake = 0;
+let zombieIdCounter = 0;
+
+const funnyMessages = [
+  "ЯЙЦЕ-СНАЙПЕР! 🥚", "ЗОМБИ-ФЕРМЕР ПОЛУЧИЛ ПЕРНАТУЮ АТАКУ!",
+  "КУРИЦА-ТЕРМИНАТОР!", "ОМЛЕТ ИЗ ЗОМБИ!", "ЯИЧКО НЕ ПРОСТОЕ — ЗОЛОТОЕ!",
+  "БУК-БУК-БУК-АААА!", "ЭТО НЕ КУРИЦА, ЭТО ЯЙЦЕМЁТ!",
+  "ФЕРМЕРУ СНЕСЛО КРЫШУ!", "КО-КО-КО-БУМ!",
+  "ЗОМБИ СТАЛ ВЕГЕТАРИАНЦЕМ (не по своей воле)"
+];
+
+// ====== ЗАПУСК ======
+function startGame() {
+  document.getElementById('startScreen').style.display = 'none';
+  init();
+  gameRunning = true;
+  animate();
+  showFunny("КО-КО-КО! НАЧАЛИ! 🐔");
+}
+
+function init() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x87CEEB);
+  scene.fog = new THREE.Fog(0x87CEEB, 50, 200);
+
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = true;
+  document.body.appendChild(renderer.domElement);
+
+  clock = new THREE.Clock();
+
+  // Освещение
+  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+  scene.add(ambient);
+  const sun = new THREE.DirectionalLight(0xffffff, 1);
+  sun.position.set(50, 100, 50);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.camera.left = -100;
+  sun.shadow.camera.right = 100;
+  sun.shadow.camera.top = 100;
+  sun.shadow.camera.bottom = -100;
+  scene.add(sun);
+
+  // Земля (зелёная трава)
+  const groundGeo = new THREE.PlaneGeometry(500, 500);
+  const groundMat = new THREE.MeshStandardMaterial({ color: 0x3a8c3a });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI/2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  // Забор
+  createFences();
+
+  // Куриный игрок (от первого лица — видим только "крылья" по бокам)
+  player = new THREE.Object3D();
+  player.position.set(0, 1.7, 0);
+  scene.add(player);
+  playerYaw = 0;
+  playerPitch = 0;
+
+  // Крылья курицы по бокам
+  const wingMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+  const leftWing = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.1, 0.8), wingMat);
+  leftWing.position.set(-0.7, -0.3, -0.5);
+  leftWing.rotation.z = 0.3;
+  camera.add(leftWing);
+  const rightWing = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.1, 0.8), wingMat);
+  rightWing.position.set(0.7, -0.3, -0.5);
+  rightWing.rotation.z = -0.3;
+  camera.add(rightWing);
+  // Красный гребешок сверху
+  const comb = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.3, 6), new THREE.MeshStandardMaterial({color: 0xff2222}));
+  comb.position.set(0, 0.4, -0.3);
+  camera.add(comb);
+  // Клюв
+  const beak = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.3, 4), new THREE.MeshStandardMaterial({color: 0xffaa00}));
+  beak.rotation.x = Math.PI/2;
+  beak.position.set(0, -0.1, -0.7);
+  camera.add(beak);
+  scene.add(camera);
+
+  // Начальные зомби
+  for (let i = 0; i < 5; i++) spawnZombie();
+
+  // События
+  document.addEventListener('keydown', e => keys[e.code] = true);
+  document.addEventListener('keyup', e => keys[e.code] = false);
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mousedown', e => { if (e.button === 0) throwEgg(); });
+  window.addEventListener('resize', onResize);
+  document.addEventListener('pointerlockchange', () => {
+    if (document.pointerLockElement !== renderer.domElement && gameRunning) {
+      renderer.domElement.requestPointerLock();
+    }
+  });
+  renderer.domElement.addEventListener('click', () => {
+    renderer.domElement.requestPointerLock();
+  });
+}
+
+function onMouseMove(e) {
+  if (!gameRunning || document.pointerLockElement !== renderer.domElement) return;
+  playerYaw -= e.movementX * 0.002;
+  playerPitch -= e.movementY * 0.002;
+  playerPitch = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, playerPitch));
+}
+
+function onResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// ====== ЗАБОР ======
+function createFences() {
+  const fenceMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+  const postGeo = new THREE.BoxGeometry(0.3, 2, 0.3);
+  const railGeo = new THREE.BoxGeometry(4, 0.2, 0.2);
+
+  const half = 60;
+  for (let i = -half; i <= half; i += 4) {
+    // Вдоль X
+    [-half, half].forEach(z => {
+      const post = new THREE.Mesh(postGeo, fenceMat);
+      post.position.set(i, 1, z);
+      post.castShadow = true;
+      scene.add(post);
+      const rail = new THREE.Mesh(railGeo, fenceMat);
+      rail.position.set(i + 2, 1, z);
+      scene.add(rail);
+    });
+    // Вдоль Z
+    [-half, half].forEach(x => {
+      const post = new THREE.Mesh(postGeo, fenceMat);
+      post.position.set(x, 1, i);
+      post.castShadow = true;
+      scene.add(post);
+      const rail = new THREE.Mesh(railGeo, fenceMat);
+      rail.position.set(x, 1, i + 2);
+      rail.rotation.y = Math.PI/2;
+      scene.add(rail);
+    });
+  }
+}
+
+// ====== ЗОМБИ-ФЕРМЕР ======
+function createZombieModel() {
+  const group = new THREE.Group();
+  const skinMat = new THREE.MeshStandardMaterial({ color: 0x7ba05b });
+  const clothesMat = new THREE.MeshStandardMaterial({ color: 0x4a3520 });
+  const eyeMat = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000 });
+
+  // Тело
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1, 1.4, 0.6), clothesMat);
+  body.position.y = 1.6;
+  body.castShadow = true;
+  group.add(body);
+
+  // Голова
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), skinMat);
+  head.position.y = 2.7;
+  head.castShadow = true;
+  group.add(head);
+
+  // Глаза
+  const eyeGeo = new THREE.SphereGeometry(0.1, 8, 8);
+  const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+  eyeL.position.set(-0.2, 2.8, -0.42);
+  group.add(eyeL);
+  const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+  eyeR.position.set(0.2, 2.8, -0.42);
+  group.add(eyeR);
+
+  // Руки вытянуты вперёд (зомби-стиль)
+  const armGeo = new THREE.BoxGeometry(0.25, 0.25, 1.2);
+  const armL = new THREE.Mesh(armGeo, skinMat);
+  armL.position.set(-0.7, 2, -0.5);
+  group.add(armL);
+  const armR = new THREE.Mesh(armGeo, skinMat);
+  armR.position.set(0.7, 2, -0.5);
+  group.add(armR);
+
+  // Ноги
+  const legGeo = new THREE.BoxGeometry(0.3, 1, 0.3);
+  const legL = new THREE.Mesh(legGeo, clothesMat);
+  legL.position.set(-0.25, 0.5, 0);
+  legL.castShadow = true;
+  group.add(legL);
+  const legR = new THREE.Mesh(legGeo, clothesMat);
+  legR.position.set(0.25, 0.5, 0);
+  legR.castShadow = true;
+  group.add(legR);
+
+  // Соломенная шляпа (фермер!)
+  const hatMat = new THREE.MeshStandardMaterial({ color: 0xd4a017 });
+  const hatTop = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.3, 8), hatMat);
+  hatTop.position.y = 3.25;
+  group.add(hatTop);
+  const hatBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.08, 12), hatMat);
+  hatBrim.position.y = 3.1;
+  group.add(hatBrim);
+
+  // Вилы в руке (смешно же!)
+  const pitchforkMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2, 6), pitchforkMat);
+  handle.position.set(0.7, 2.5, -1);
+  group.add(handle);
+
+  return group;
+}
+
+function spawnZombie() {
+  const zombie = createZombieModel();
+  const angle = Math.random() * Math.PI * 2;
+  const dist = 40 + Math.random() * 30;
+  zombie.position.set(Math.cos(angle) * dist, 0, Math.sin(angle) * dist);
+  zombie.userData = {
+    id: zombieIdCounter++,
+    hp: 3,
+    speed: 2 + Math.random() * 1.5,
+    wobble: Math.random() * Math.PI * 2,
+    alive: true
+  };
+  zombies.push(zombie);
+  scene.add(zombie);
+}
+
+// ====== ЯЙЦО ======
+function throwEgg() {
+  const now = performance.now();
+  if (now - lastShot < 300) return;
+  lastShot = now;
+
+  const eggGeo = new THREE.SphereGeometry(0.25, 12, 12);
+  const eggMat = new THREE.MeshStandardMaterial({ color: 0xfff8dc, emissive: 0x332200 });
+  const egg = new THREE.Mesh(eggGeo, eggMat);
+  egg.scale.set(1, 1.4, 1);
+
+  const startPos = new THREE.Vector3();
+  camera.getWorldPosition(startPos);
+  egg.position.copy(startPos);
+
+  const direction = new THREE.Vector3();
+  camera.getWorldDirection(direction);
+
+  egg.userData = {
+    velocity: direction.clone().multiplyScalar(40),
+    life: 3
+  };
+
+  eggs.push(egg);
+  scene.add(egg);
+
+  // Отдача камеры
+  cameraShake = 0.3;
+}
+
+// ====== ЧАСТИЦЫ КРОВИ (смешные — жёлтые, потому что это зомби-фермеры) ======
+function spawnBlood(pos) {
+  const colors = [0xff0000, 0xff6600, 0xffff00];
+  for (let i = 0; i < 15; i++) {
+    const p = new THREE.Mesh(
+      new THREE.SphereGeometry(0.1, 4, 4),
+      new THREE.MeshBasicMaterial({ color: colors[Math.floor(Math.random()*3)] })
+    );
+    p.position.copy(pos);
+    p.userData = {
+      vel: new THREE.Vector3(
+        (Math.random()-0.5)*8,
+        Math.random()*8,
+        (Math.random()-0.5)*8
+      ),
+      life: 1
+    };
+    bloodParticles.push(p);
+    scene.add(p);
+  }
+}
+
+// ====== СМЕШНОЙ ТЕКСТ ======
+function showFunny(text) {
+  const el = document.getElementById('funnyText');
+  el.textContent = text;
+  el.style.opacity = '1';
+  setTimeout(() => el.style.opacity = '0', 1500);
+}
+
+// ====== УРОН ======
+function takeDamage(amount) {
+  hp -= amount;
+  const flash = document.getElementById('hitFlash');
+  flash.style.opacity = '0.6';
+  setTimeout(() => flash.style.opacity = '0', 200);
+  cameraShake = 0.8;
+  document.getElementById('hp').textContent = Math.max(0, hp);
+  if (hp <= 0) gameOver();
+}
+
+function gameOver() {
+  gameRunning = false;
+  document.exitPointerLock();
+  const screen = document.getElementById('startScreen');
+  screen.style.display = 'flex';
+  screen.querySelector('h1').textContent = '🍗 ТЕБЯ ОЩИПАЛИ! 🍗';
+  screen.querySelector('p').innerHTML = `Ты убил <b>${kills}</b> зомби-фермеров и снёс <b>${score}</b> яиц!<br>Куриное правосудие свершилось... почти.`;
+  screen.querySelector('button').textContent = 'ЕЩЁ РАЗ!';
+}
+
+// ====== АНИМАЦИЯ ======
+function animate() {
+  if (!gameRunning) return;
+  requestAnimationFrame(animate);
+
+  const delta = Math.min(clock.getDelta(), 0.1);
+  const time = clock.elapsedTime;
+
+  // ====== ДВИЖЕНИЕ ИГРОКА ======
+  const speed = 8;
+  let moveX = 0, moveZ = 0;
+  if (keys['KeyW']) moveZ -= 1;
+  if (keys['KeyS']) moveZ += 1;
+  if (keys['KeyA']) moveX -= 1;
+  if (keys['KeyD']) moveX += 1;
+
+  const len = Math.hypot(moveX, moveZ);
+  if (len > 0) { moveX /= len; moveZ /= len; }
+
+  // Поворот по направлению камеры
+  const forward = new THREE.Vector3(-Math.sin(playerYaw), 0, -Math.cos(playerYaw));
+  const right = new THREE.Vector3(Math.cos(playerYaw), 0, -Math.sin(playerYaw));
+
+  const moveDir = new THREE.Vector3()
+    .addScaledVector(right, moveX)
+    .addScaledVector(forward, -moveZ);
+
+  player.position.addScaledVector(moveDir, speed * delta);
+
+  // Прыжок (просто покачивание)
+  let targetY = 1.7;
+  if (keys['Space']) targetY = 2.4;
+  player.position.y += (targetY - player.position.y) * 0.2;
+
+  // Ограничение по забору
+  player.position.x = Math.max(-58, Math.min(58, player.position.x));
+  player.position.z = Math.max(-58, Math.min(58, player.position.z));
+
+  // Камера
+  camera.position.copy(player.position);
+  camera.rotation.order = 'YXZ';
+  camera.rotation.y = playerYaw;
+  camera.rotation.x = playerPitch;
+
+  // Тряска камеры
+  if (cameraShake > 0.01) {
+    camera.position.x += (Math.random()-0.5) * cameraShake * 0.3;
+    camera.position.y += (Math.random()-0.5) * cameraShake * 0.3;
+    camera.rotation.z = (Math.random()-0.5) * cameraShake * 0.1;
+    cameraShake *= 0.85;
+  } else {
+    camera.rotation.z = 0;
+  }
+
+  // Покачивание крыльев (анимация ходьбы)
+  camera.children.forEach(c => {
+    if (c.geometry && c.geometry.type === 'BoxGeometry' && c.position.x !== 0) {
+      c.rotation.z = (c.position.x < 0 ? 0.3 : -0.3) + Math.sin(time * 10) * (len > 0 ? 0.2 : 0.05);
+    }
+  });
+
+  // ====== СПАВН ЗОМБИ ======
+  const now = performance.now();
+  if (now - lastZombieSpawn > 2000 && zombies.length < 15) {
+    spawnZombie();
+    lastZombieSpawn = now;
+  }
+
+  // ====== ОБНОВЛЕНИЕ ЗОМБИ ======
+  zombies.forEach(z => {
+    if (!z.userData.alive) return;
+
+    // Движение к игроку
+    const dir = new THREE.Vector3().subVectors(player.position, z.position);
+    dir.y = 0;
+    const dist = dir.length();
+    dir.normalize();
+
+    // Смешное покачивание
+    z.userData.wobble += delta * 8;
+    const wobble = Math.sin(z.userData.wobble) * 0.15;
+
+    z.position.x += dir.x * z.userData.speed * delta;
+    z.position.z += dir.z * z.userData.speed * delta;
+    z.rotation.z = wobble;
+    z.rotation.y = Math.atan2(dir.x, dir.z);
+
+    // Анимация ходьбы (руки трясутся)
+    z.children.forEach(c => {
+      if (c.geometry && c.geometry.type === 'BoxGeometry') {
+        c.position.y += Math.sin(time * 10 + z.userData.id) * 0.005;
+      }
+    });
+
+    // Атака
+    if (dist < 2.5 && now - (z.userData.lastAttack || 0) > 800) {
+      z.userData.lastAttack = now;
+      takeDamage(10);
+      showFunny("АЙ! ЗОМБИ-ФЕРМЕР УКУСИЛ! 🧟");
+    }
+  });
+
+  // ====== ОБНОВЛЕНИЕ ЯИЦ ======
+  for (let i = eggs.length - 1; i >= 0; i--) {
+    const egg = eggs[i];
+    egg.userData.velocity.y -= 25 * delta;
+    egg.position.addScaledVector(egg.userData.velocity, delta);
+    egg.rotation.x += delta * 10;
+    egg.rotation.z += delta * 8;
+    egg.userData.life -= delta;
+
+    // Столкновение с землёй
+    if (egg.position.y < 0.1) {
+      spawnBlood(egg.position);
+      scene.remove(egg);
+      eggs.splice(i, 1);
+      continue;
+    }
+
+    // Столкновение с зомби
+    let hit = false;
+    zombies.forEach(z => {
+      if (!z.userData.alive || hit) return;
+      const dz = egg.position.distanceTo(z.position.clone().add(new THREE.Vector3(0, 1.5, 0)));
+      if (dz < 1.3) {
+        hit = true;
+        z.userData.hp--;
+        spawnBlood(egg.position);
+        if (z.userData.hp <= 0) {
+          z.userData.alive = false;
+          scene.remove(z);
+          kills++;
+          score += 100;
+          document.getElementById('kills').textContent = kills;
+          document.getElementById('score').textContent = score;
+          showFunny(funnyMessages[Math.floor(Math.random() * funnyMessages.length)]);
+        }
+        scene.remove(egg);
+        const idx = eggs.indexOf(egg);
+        if (idx > -1) eggs.splice(idx, 1);
+      }
+    });
+
+    if (egg.userData.life <= 0 && eggs.includes(egg)) {
+      scene.remove(egg);
+      eggs.splice(i, 1);
+    }
+  }
+
+  // Убираем мёртвых зомби из массива
+  zombies = zombies.filter(z => z.userData.alive || (scene.remove(z), false));
+
+  // ====== ЧАСТИЦЫ ======
+  for (let i = bloodParticles.length - 1; i >= 0; i--) {
+    const p = bloodParticles[i];
+    p.userData.vel.y -= 20 * delta;
+    p.position.addScaledVector(p.userData.vel, delta);
+    p.userData.life -= delta * 1.5;
+    p.scale.setScalar(Math.max(0.01, p.userData.life));
+    if (p.userData.life <= 0) {
+      scene.remove(p);
+      bloodParticles.splice(i, 1);
+    }
+  }
+
+  renderer.render(scene, camera);
+}
+</script>
+</body>
+</html>
