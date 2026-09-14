@@ -1,0 +1,2281 @@
+```html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,
+initial-scale=1.0,
+maximum-scale=1.0,
+user-scalable=no">
+
+<title>3D Бильярд</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    user-select:none;
+    -webkit-user-select:none;
+}
+
+body{
+    overflow:hidden;
+    background:#061018;
+    font-family:Arial,sans-serif;
+    color:white;
+}
+
+#game{
+    position:fixed;
+    inset:0;
+}
+
+canvas{
+    display:block;
+}
+
+#ui{
+    position:fixed;
+    top:15px;
+    left:50%;
+    transform:translateX(-50%);
+    width:min(900px,94vw);
+
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+
+    gap:10px;
+
+    z-index:10;
+    pointer-events:none;
+}
+
+.panel{
+    background:rgba(5,10,16,.82);
+
+    border:1px solid rgba(255,255,255,.15);
+
+    border-radius:14px;
+
+    padding:10px 16px;
+
+    backdrop-filter:blur(8px);
+
+    box-shadow:
+        0 8px 30px rgba(0,0,0,.3);
+}
+
+#turn{
+    font-size:18px;
+    font-weight:bold;
+}
+
+#scores{
+    display:flex;
+    gap:14px;
+    font-size:14px;
+}
+
+.score.active{
+    color:#55ff78;
+    font-weight:bold;
+}
+
+#powerBox{
+    position:fixed;
+
+    bottom:27px;
+    left:50%;
+
+    transform:translateX(-50%);
+
+    width:min(430px,82vw);
+
+    z-index:20;
+
+    text-align:center;
+}
+
+#powerLabel{
+    margin-bottom:7px;
+    font-size:14px;
+}
+
+#power{
+    width:100%;
+    height:14px;
+
+    appearance:none;
+
+    border-radius:20px;
+
+    background:#222;
+
+    overflow:hidden;
+
+    border:1px solid rgba(255,255,255,.2);
+}
+
+#power::-webkit-slider-thumb{
+    appearance:none;
+
+    width:0;
+    height:0;
+
+    box-shadow:
+        -500px 0 0 500px #35d66b;
+}
+
+#power::-moz-range-progress{
+    background:#35d66b;
+}
+
+#hint{
+    position:fixed;
+
+    bottom:7px;
+    left:50%;
+
+    transform:translateX(-50%);
+
+    color:rgba(255,255,255,.65);
+
+    font-size:12px;
+
+    z-index:20;
+
+    white-space:nowrap;
+}
+
+#menu{
+    position:fixed;
+
+    inset:0;
+
+    z-index:100;
+
+    display:flex;
+
+    align-items:center;
+    justify-content:center;
+
+    background:
+        radial-gradient(
+            circle at center,
+            #163d45 0%,
+            #07151c 45%,
+            #02070b 100%
+        );
+}
+
+.menuBox{
+    width:min(440px,90vw);
+
+    background:rgba(8,16,23,.95);
+
+    border:1px solid rgba(255,255,255,.15);
+
+    border-radius:22px;
+
+    padding:30px;
+
+    text-align:center;
+
+    box-shadow:
+        0 20px 80px rgba(0,0,0,.55);
+}
+
+h1{
+    font-size:38px;
+    margin-bottom:8px;
+}
+
+.subtitle{
+    color:#9caab4;
+    margin-bottom:25px;
+}
+
+.players{
+    display:grid;
+
+    grid-template-columns:
+        repeat(3,1fr);
+
+    gap:8px;
+
+    margin-bottom:20px;
+}
+
+.players button,
+.start,
+.restart{
+    border:0;
+
+    border-radius:12px;
+
+    padding:13px;
+
+    background:#182630;
+
+    color:white;
+
+    cursor:pointer;
+
+    font-size:16px;
+}
+
+.players button.selected{
+    background:#168f48;
+}
+
+.start{
+    width:100%;
+
+    background:#28bd5c;
+
+    color:#061008;
+
+    font-weight:bold;
+
+    font-size:18px;
+}
+
+#message{
+    position:fixed;
+
+    left:50%;
+    top:50%;
+
+    transform:
+        translate(-50%,-50%);
+
+    z-index:30;
+
+    background:rgba(0,0,0,.82);
+
+    padding:18px 30px;
+
+    border-radius:16px;
+
+    font-size:25px;
+
+    font-weight:bold;
+
+    display:none;
+
+    text-align:center;
+}
+
+#restart{
+    position:fixed;
+
+    right:15px;
+    top:15px;
+
+    z-index:20;
+
+    display:none;
+
+    background:
+        rgba(10,15,20,.85);
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="game"></div>
+
+
+<div id="menu">
+
+    <div class="menuBox">
+
+        <h1>🎱 БИЛЬЯРД</h1>
+
+        <div class="subtitle">
+            3D бильярд для нескольких игроков
+        </div>
+
+        <div class="players">
+
+            <button
+                data-p="2"
+                class="selected">
+                2 игрока
+            </button>
+
+            <button data-p="3">
+                3 игрока
+            </button>
+
+            <button data-p="4">
+                4 игрока
+            </button>
+
+        </div>
+
+        <button
+            class="start"
+            id="start">
+
+            НАЧАТЬ ИГРУ
+
+        </button>
+
+    </div>
+
+</div>
+
+
+<div id="ui">
+
+    <div class="panel" id="turn">
+        Ход: Игрок 1
+    </div>
+
+    <div class="panel" id="scores">
+
+        <div
+            class="score active"
+            id="s0">
+            Игрок 1: 0
+        </div>
+
+        <div
+            class="score"
+            id="s1">
+            Игрок 2: 0
+        </div>
+
+        <div
+            class="score"
+            id="s2"
+            style="display:none">
+            Игрок 3: 0
+        </div>
+
+        <div
+            class="score"
+            id="s3"
+            style="display:none">
+            Игрок 4: 0
+        </div>
+
+    </div>
+
+</div>
+
+
+<div id="powerBox">
+
+    <div id="powerLabel">
+        Сила удара: 50%
+    </div>
+
+    <input
+        id="power"
+        type="range"
+        min="5"
+        max="100"
+        value="50">
+
+</div>
+
+
+<div id="hint">
+    Наводи мышью / пальцем • Клик — удар
+</div>
+
+
+<div id="message"></div>
+
+
+<button
+    id="restart"
+    class="restart">
+
+    ↻ Новая игра
+
+</button>
+
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+<script>
+
+/* =========================================================
+   НАСТРОЙКИ
+========================================================= */
+
+
+/*
+    ГЛАВНОЕ:
+
+    Чем меньше число,
+    тем медленнее чувствительность.
+
+    Было примерно 1.0.
+
+    Теперь 0.04.
+*/
+
+const AIM_SENSITIVITY = 0.04;
+
+
+/*
+    Плавность прицела.
+
+    Чем меньше —
+    тем плавнее и медленнее
+    реагирует направление.
+*/
+
+const AIM_SMOOTH = 0.05;
+
+
+/*
+    Скорость поворота камеры.
+*/
+
+const CAMERA_SENSITIVITY = 0.02;
+
+
+const TABLE_W = 16;
+const TABLE_H = 8;
+
+const BALL_R = .32;
+
+
+/*
+    Насколько далеко
+    камера находится за шаром.
+*/
+
+const CAMERA_DISTANCE = 5.2;
+
+const CAMERA_HEIGHT = 3.7;
+
+
+/*
+    Длина кия.
+*/
+
+const CUE_LENGTH = 7;
+
+
+/*
+    Расстояние центра кия
+    от белого шара.
+*/
+
+const CUE_DISTANCE = 3.7;
+
+
+const pockets = [
+
+    [-TABLE_W/2,-TABLE_H/2],
+
+    [0,-TABLE_H/2],
+
+    [TABLE_W/2,-TABLE_H/2],
+
+    [-TABLE_W/2,TABLE_H/2],
+
+    [0,TABLE_H/2],
+
+    [TABLE_W/2,TABLE_H/2]
+
+];
+
+
+/* =========================================================
+   ПЕРЕМЕННЫЕ
+========================================================= */
+
+let scene;
+let camera;
+let renderer;
+
+let balls = [];
+
+let cueBall;
+
+let cueStick;
+
+let aimLine;
+
+let currentPlayer = 0;
+
+let playerCount = 2;
+
+let scores = [0,0,0,0];
+
+let mouse = new THREE.Vector2();
+
+let raycaster =
+    new THREE.Raycaster();
+
+let clock =
+    new THREE.Clock();
+
+let previousMoving = false;
+
+
+/*
+    Реальное направление.
+*/
+
+let aimAngle = 0;
+
+
+/*
+    Целевое направление.
+*/
+
+let targetAimAngle = 0;
+
+
+/*
+    Точка, куда смотрит камера.
+*/
+
+let cameraLook =
+    new THREE.Vector3();
+
+
+/* =========================================================
+   МЕНЮ
+========================================================= */
+
+document
+.querySelectorAll(".players button")
+.forEach(button => {
+
+    button.onclick = () => {
+
+        document
+        .querySelectorAll(".players button")
+        .forEach(b =>
+            b.classList.remove("selected")
+        );
+
+        button.classList.add("selected");
+
+        playerCount =
+            Number(button.dataset.p);
+    };
+
+});
+
+
+document.getElementById("start")
+.onclick = () => {
+
+    document.getElementById("menu")
+    .style.display = "none";
+
+    document.getElementById("restart")
+    .style.display = "block";
+
+    init();
+};
+
+
+document.getElementById("restart")
+.onclick = () => {
+
+    location.reload();
+
+};
+
+
+/* =========================================================
+   СИЛА УДАРА
+========================================================= */
+
+const power =
+    document.getElementById("power");
+
+
+power.oninput = () => {
+
+    document.getElementById("powerLabel")
+    .textContent =
+        "Сила удара: " +
+        power.value +
+        "%";
+
+};
+
+
+/* =========================================================
+   INIT
+========================================================= */
+
+function init(){
+
+    scene =
+        new THREE.Scene();
+
+
+    scene.background =
+        new THREE.Color(0x061018);
+
+
+    camera =
+        new THREE.PerspectiveCamera(
+            55,
+            innerWidth/innerHeight,
+            .1,
+            1000
+        );
+
+
+    renderer =
+        new THREE.WebGLRenderer({
+            antialias:true
+        });
+
+
+    renderer.setPixelRatio(
+        Math.min(devicePixelRatio,2)
+    );
+
+
+    renderer.setSize(
+        innerWidth,
+        innerHeight
+    );
+
+
+    renderer.shadowMap.enabled =
+        true;
+
+
+    renderer.shadowMap.type =
+        THREE.PCFSoftShadowMap;
+
+
+    document
+    .getElementById("game")
+    .appendChild(renderer.domElement);
+
+
+    /* Свет */
+
+    scene.add(
+        new THREE.AmbientLight(
+            0xffffff,
+            1.35
+        )
+    );
+
+
+    const light =
+        new THREE.PointLight(
+            0xffffff,
+            1200,
+            40
+        );
+
+
+    light.position.set(
+        0,9,0
+    );
+
+
+    light.castShadow =
+        true;
+
+
+    scene.add(light);
+
+
+    const light2 =
+        new THREE.PointLight(
+            0x77cfff,
+            450,
+            30
+        );
+
+
+    light2.position.set(
+        -8,6,4
+    );
+
+
+    scene.add(light2);
+
+
+    createTable();
+
+    createBalls();
+
+    createCue();
+
+    createAimLine();
+
+
+    window.addEventListener(
+        "resize",
+        resize
+    );
+
+
+    renderer.domElement
+    .addEventListener(
+        "pointermove",
+        pointerMove
+    );
+
+
+    renderer.domElement
+    .addEventListener(
+        "pointerdown",
+        pointerDown
+    );
+
+
+    updateCamera(true);
+
+    updateCue();
+
+    updateAimLine();
+
+
+    animate();
+}
+
+
+/* =========================================================
+   СТОЛ
+========================================================= */
+
+function createTable(){
+
+    const group =
+        new THREE.Group();
+
+    scene.add(group);
+
+
+    const base =
+        new THREE.Mesh(
+
+            new THREE.BoxGeometry(
+                TABLE_W+1.2,
+                .7,
+                TABLE_H+1.2
+            ),
+
+            new THREE.MeshStandardMaterial({
+                color:0x25160e,
+                roughness:.7
+            })
+
+        );
+
+
+    base.position.y = -.65;
+
+    base.receiveShadow = true;
+
+    group.add(base);
+
+
+    const field =
+        new THREE.Mesh(
+
+            new THREE.BoxGeometry(
+                TABLE_W,
+                .18,
+                TABLE_H
+            ),
+
+            new THREE.MeshStandardMaterial({
+                color:0x075d33,
+                roughness:.9
+            })
+
+        );
+
+
+    field.position.y = -.25;
+
+    field.receiveShadow = true;
+
+    group.add(field);
+
+
+    const railMaterial =
+        new THREE.MeshStandardMaterial({
+            color:0x0d3825,
+            roughness:.65
+        });
+
+
+    const rails = [
+
+        [0,.15,-TABLE_H/2-.35,
+         TABLE_W+.7,.65,.7],
+
+        [0,.15,TABLE_H/2+.35,
+         TABLE_W+.7,.65,.7],
+
+        [-TABLE_W/2-.35,.15,0,
+         .7,.65,TABLE_H],
+
+        [TABLE_W/2+.35,.15,0,
+         .7,.65,TABLE_H]
+
+    ];
+
+
+    rails.forEach(r => {
+
+        const rail =
+            new THREE.Mesh(
+
+                new THREE.BoxGeometry(
+                    r[3],
+                    r[4],
+                    r[5]
+                ),
+
+                railMaterial
+
+            );
+
+
+        rail.position.set(
+            r[0],
+            r[1]-.25,
+            r[2]
+        );
+
+
+        rail.castShadow =
+            true;
+
+        rail.receiveShadow =
+            true;
+
+
+        group.add(rail);
+
+    });
+
+
+    const pocketMaterial =
+        new THREE.MeshStandardMaterial({
+            color:0x010101,
+            roughness:1
+        });
+
+
+    pockets.forEach(p => {
+
+        const pocket =
+            new THREE.Mesh(
+
+                new THREE.CylinderGeometry(
+                    .55,
+                    .55,
+                    .15,
+                    32
+                ),
+
+                pocketMaterial
+
+            );
+
+
+        pocket.position.set(
+            p[0],
+            -.15,
+            p[1]
+        );
+
+
+        group.add(pocket);
+
+    });
+
+
+    /* ножки */
+
+    const legMaterial =
+        new THREE.MeshStandardMaterial({
+            color:0x170d08
+        });
+
+
+    for(
+        const x of [-6.5,6.5]
+    ){
+
+        for(
+            const z of [-3,3]
+        ){
+
+            const leg =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        .8,4,.8
+                    ),
+
+                    legMaterial
+
+                );
+
+
+            leg.position.set(
+                x,
+                -2,
+                z
+            );
+
+
+            group.add(leg);
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   ШАР
+========================================================= */
+
+function createBall(
+    color,
+    x,
+    z,
+    number
+){
+
+    const ball =
+        new THREE.Mesh(
+
+            new THREE.SphereGeometry(
+                BALL_R,
+                32,
+                20
+            ),
+
+            new THREE.MeshStandardMaterial({
+                color,
+                roughness:.23,
+                metalness:.05
+            })
+
+        );
+
+
+    ball.position.set(
+        x,.22,z
+    );
+
+
+    ball.castShadow = true;
+
+    ball.receiveShadow = true;
+
+
+    ball.userData = {
+
+        vx:0,
+        vz:0,
+
+        number,
+
+        active:true
+
+    };
+
+
+    scene.add(ball);
+
+    balls.push(ball);
+
+
+    return ball;
+}
+
+
+/* =========================================================
+   ШАРЫ
+========================================================= */
+
+function createBalls(){
+
+    balls = [];
+
+
+    cueBall =
+        createBall(
+            0xffffff,
+            -4.5,
+            0,
+            0
+        );
+
+
+    const colors = [
+
+        0xffff00,
+        0x0055ff,
+        0xff2222,
+        0x7b00ff,
+        0xff7000,
+        0x0099ff,
+        0xff2090,
+        0x111111,
+        0xffff00,
+        0xff1111,
+        0x2222ff,
+        0xff8800,
+        0x9900ff,
+        0x00cc66,
+        0xff3333
+
+    ];
+
+
+    const startX = 3;
+
+    let number = 1;
+
+
+    for(
+        let row=0;
+        row<5;
+        row++
+    ){
+
+        for(
+            let col=0;
+            col<=row;
+            col++
+        ){
+
+            const x =
+                startX +
+                row*BALL_R*1.75;
+
+
+            const z =
+                (col-row/2) *
+                BALL_R*2.05;
+
+
+            createBall(
+                colors[number-1],
+                x,
+                z,
+                number
+            );
+
+
+            number++;
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   КИЙ — ПОЛНОСТЬЮ ПЕРЕДЕЛАН
+========================================================= */
+
+function createCue(){
+
+    /*
+        CylinderGeometry по умолчанию
+        направлен вдоль оси Y.
+
+        Мы НЕ будем вручную задавать
+        rotation.x / rotation.y.
+
+        Вместо этого будем использовать
+        quaternion.
+
+        Это гарантирует,
+        что кий всегда смотрит
+        точно в нужную сторону.
+    */
+
+    const geometry =
+        new THREE.CylinderGeometry(
+            .055,
+            .11,
+            CUE_LENGTH,
+            20
+        );
+
+
+    const material =
+        new THREE.MeshStandardMaterial({
+
+            color:0xd09a61,
+
+            roughness:.38,
+
+            metalness:.03
+
+        });
+
+
+    cueStick =
+        new THREE.Mesh(
+            geometry,
+            material
+        );
+
+
+    cueStick.castShadow =
+        true;
+
+
+    scene.add(cueStick);
+}
+
+
+/* =========================================================
+   ПРАВИЛЬНОЕ ПОЛОЖЕНИЕ КИЯ
+========================================================= */
+
+function updateCue(){
+
+    if(!cueBall)
+        return;
+
+
+    /*
+        Направление удара:
+
+        X = sin
+        Z = cos
+    */
+
+    const direction =
+        new THREE.Vector3(
+            Math.sin(aimAngle),
+            0,
+            Math.cos(aimAngle)
+        );
+
+
+    /*
+        Центр кия находится
+        ПОЗАДИ белого шара.
+
+        То есть:
+
+        шар ----> направление удара
+
+        кий находится слева
+        от этой стрелки.
+    */
+
+    const cuePosition =
+        cueBall.position.clone()
+        .sub(
+            direction.clone()
+            .multiplyScalar(CUE_DISTANCE)
+        );
+
+
+    cuePosition.y =
+        .55;
+
+
+    cueStick.position.copy(
+        cuePosition
+    );
+
+
+    /*
+        Очень важный момент.
+
+        Ось цилиндра = Y.
+
+        Мы поворачиваем ось Y
+        в направлении удара.
+
+        Поэтому кий теперь
+        физически совпадает
+        с направлением шара.
+    */
+
+    const up =
+        new THREE.Vector3(
+            0,1,0
+        );
+
+
+    const quaternion =
+        new THREE.Quaternion();
+
+
+    quaternion.setFromUnitVectors(
+        up,
+        direction
+    );
+
+
+    cueStick.quaternion.copy(
+        quaternion
+    );
+
+}
+
+
+/* =========================================================
+   ЛИНИЯ ПРИЦЕЛА
+========================================================= */
+
+function createAimLine(){
+
+    const geometry =
+        new THREE.BufferGeometry();
+
+
+    geometry.setAttribute(
+        "position",
+
+        new THREE.BufferAttribute(
+            new Float32Array(6),
+            3
+        )
+    );
+
+
+    aimLine =
+        new THREE.Line(
+
+            geometry,
+
+            new THREE.LineBasicMaterial({
+                color:0xffffff,
+                transparent:true,
+                opacity:.4
+            })
+
+        );
+
+
+    scene.add(aimLine);
+}
+
+
+function updateAimLine(){
+
+    if(!cueBall)
+        return;
+
+
+    const direction =
+        new THREE.Vector3(
+            Math.sin(aimAngle),
+            0,
+            Math.cos(aimAngle)
+        );
+
+
+    const start =
+        cueBall.position.clone();
+
+
+    start.y =
+        .25;
+
+
+    const end =
+        start.clone()
+        .add(
+            direction
+            .multiplyScalar(8)
+        );
+
+
+    const position =
+        aimLine.geometry
+        .attributes.position;
+
+
+    position.setXYZ(
+        0,
+        start.x,
+        start.y,
+        start.z
+    );
+
+
+    position.setXYZ(
+        1,
+        end.x,
+        end.y,
+        end.z
+    );
+
+
+    position.needsUpdate =
+        true;
+}
+
+
+/* =========================================================
+   ПОЛУЧЕНИЕ ТОЧКИ МЫШИ
+========================================================= */
+
+function getMouseWorld(){
+
+    raycaster.setFromCamera(
+        mouse,
+        camera
+    );
+
+
+    const plane =
+        new THREE.Plane(
+            new THREE.Vector3(0,1,0),
+            -.1
+        );
+
+
+    const point =
+        new THREE.Vector3();
+
+
+    raycaster.ray
+    .intersectPlane(
+        plane,
+        point
+    );
+
+
+    return point;
+}
+
+
+/* =========================================================
+   ПРИЦЕЛИВАНИЕ
+========================================================= */
+
+function updateAim(){
+
+    if(!cueBall)
+        return;
+
+
+    const target =
+        getMouseWorld();
+
+
+    if(!target)
+        return;
+
+
+    const dx =
+        target.x -
+        cueBall.position.x;
+
+
+    const dz =
+        target.z -
+        cueBall.position.z;
+
+
+    /*
+        Целевое направление.
+    */
+
+    targetAimAngle =
+        Math.atan2(
+            dx,
+            dz
+        );
+
+
+    /*
+        Нормализуем разницу углов,
+        чтобы не было резкого
+        прыжка через 180°.
+    */
+
+    let difference =
+        targetAimAngle -
+        aimAngle;
+
+
+    while(
+        difference > Math.PI
+    )
+        difference -=
+            Math.PI*2;
+
+
+    while(
+        difference < -Math.PI
+    )
+        difference +=
+            Math.PI*2;
+
+
+    /*
+        ВОТ ЗДЕСЬ НИЗКАЯ СЕНСА.
+
+        AIM_SMOOTH = 0.05
+
+        Поэтому кий и камера
+        двигаются намного медленнее.
+    */
+
+    aimAngle +=
+        difference *
+        AIM_SMOOTH *
+        AIM_SENSITIVITY *
+        5;
+
+
+    updateCue();
+
+    updateAimLine();
+
+    updateCamera();
+
+}
+
+
+/* =========================================================
+   КАМЕРА
+========================================================= */
+
+function updateCamera(
+    instant=false
+){
+
+    if(!cueBall)
+        return;
+
+
+    const direction =
+        new THREE.Vector3(
+
+            Math.sin(aimAngle),
+            0,
+
+            Math.cos(aimAngle)
+
+        );
+
+
+    const powerValue =
+        Number(power.value)/100;
+
+
+    /*
+        Камера стоит
+        строго позади шара.
+    */
+
+    const distance =
+        CAMERA_DISTANCE +
+        powerValue*1.2;
+
+
+    const wantedPosition =
+        cueBall.position.clone();
+
+
+    wantedPosition.sub(
+        direction.clone()
+        .multiplyScalar(distance)
+    );
+
+
+    wantedPosition.y =
+        CAMERA_HEIGHT;
+
+
+    if(instant){
+
+        camera.position.copy(
+            wantedPosition
+        );
+
+    }else{
+
+        camera.position.lerp(
+            wantedPosition,
+            CAMERA_SENSITIVITY
+        );
+
+    }
+
+
+    /*
+        Камера смотрит
+        чуть дальше белого шара.
+    */
+
+    const wantedLook =
+        cueBall.position.clone();
+
+
+    wantedLook.add(
+        direction.clone()
+        .multiplyScalar(4.5)
+    );
+
+
+    wantedLook.y =
+        .15;
+
+
+    cameraLook.lerp(
+        wantedLook,
+        instant ? 1 : .08
+    );
+
+
+    camera.lookAt(
+        cameraLook
+    );
+
+}
+
+
+/* =========================================================
+   МЫШЬ
+========================================================= */
+
+function pointerMove(e){
+
+    const rect =
+        renderer.domElement
+        .getBoundingClientRect();
+
+
+    const rawX =
+        ((e.clientX-rect.left) /
+        rect.width)*2-1;
+
+
+    const rawY =
+        -((e.clientY-rect.top) /
+        rect.height)*2+1;
+
+
+    /*
+        Дополнительное замедление
+        движения курсора.
+
+        Центр экрана сохраняется,
+        но направление меняется
+        гораздо медленнее.
+    */
+
+    mouse.x +=
+        (rawX-mouse.x) *
+        .12;
+
+
+    mouse.y +=
+        (rawY-mouse.y) *
+        .12;
+
+
+    if(!isMoving()){
+
+        updateAim();
+
+    }
+
+}
+
+
+/* =========================================================
+   УДАР
+========================================================= */
+
+function pointerDown(){
+
+    if(isMoving())
+        return;
+
+
+    if(!cueBall)
+        return;
+
+
+    if(!cueBall.userData.active)
+        return;
+
+
+    const powerValue =
+        Number(power.value)/100;
+
+
+    const speed =
+        5 +
+        powerValue*18;
+
+
+    const direction =
+        new THREE.Vector3(
+
+            Math.sin(aimAngle),
+            0,
+            Math.cos(aimAngle)
+
+        );
+
+
+    cueBall.userData.vx =
+        direction.x*speed;
+
+
+    cueBall.userData.vz =
+        direction.z*speed;
+
+
+    cueStick.visible =
+        false;
+
+
+    aimLine.visible =
+        false;
+
+}
+
+
+/* =========================================================
+   ФИЗИКА
+========================================================= */
+
+function isMoving(){
+
+    return balls.some(
+        b =>
+        b.userData.active &&
+        (
+            Math.abs(b.userData.vx)>.03 ||
+            Math.abs(b.userData.vz)>.03
+        )
+    );
+
+}
+
+
+function updatePhysics(dt){
+
+    const friction =
+        Math.pow(.992,dt*60);
+
+
+    for(
+        const b of balls
+    ){
+
+        if(!b.userData.active)
+            continue;
+
+
+        b.position.x +=
+            b.userData.vx*dt;
+
+
+        b.position.z +=
+            b.userData.vz*dt;
+
+
+        b.userData.vx *=
+            friction;
+
+
+        b.userData.vz *=
+            friction;
+
+
+        if(
+            Math.abs(
+                b.userData.vx
+            ) < .015
+        )
+            b.userData.vx=0;
+
+
+        if(
+            Math.abs(
+                b.userData.vz
+            ) < .015
+        )
+            b.userData.vz=0;
+
+
+        checkWalls(b);
+
+        checkPocket(b);
+
+    }
+
+
+    /*
+        Столкновения шаров.
+    */
+
+    for(
+        let i=0;
+        i<balls.length;
+        i++
+    ){
+
+        const a =
+            balls[i];
+
+
+        if(!a.userData.active)
+            continue;
+
+
+        for(
+            let j=i+1;
+            j<balls.length;
+            j++
+        ){
+
+            const b =
+                balls[j];
+
+
+            if(!b.userData.active)
+                continue;
+
+
+            const dx =
+                b.position.x -
+                a.position.x;
+
+
+            const dz =
+                b.position.z -
+                a.position.z;
+
+
+            const distance =
+                Math.sqrt(
+                    dx*dx+
+                    dz*dz
+                );
+
+
+            const minDistance =
+                BALL_R*2;
+
+
+            if(
+                distance <
+                minDistance &&
+                distance>.0001
+            ){
+
+                const nx =
+                    dx/distance;
+
+
+                const nz =
+                    dz/distance;
+
+
+                const overlap =
+                    minDistance-distance;
+
+
+                a.position.x -=
+                    nx*overlap/2;
+
+
+                a.position.z -=
+                    nz*overlap/2;
+
+
+                b.position.x +=
+                    nx*overlap/2;
+
+
+                b.position.z +=
+                    nz*overlap/2;
+
+
+                const rvx =
+                    b.userData.vx -
+                    a.userData.vx;
+
+
+                const rvz =
+                    b.userData.vz -
+                    a.userData.vz;
+
+
+                const velocity =
+                    rvx*nx+
+                    rvz*nz;
+
+
+                if(velocity>0)
+                    continue;
+
+
+                const impulse =
+                    -velocity;
+
+
+                a.userData.vx -=
+                    impulse*nx;
+
+
+                a.userData.vz -=
+                    impulse*nz;
+
+
+                b.userData.vx +=
+                    impulse*nx;
+
+
+                b.userData.vz +=
+                    impulse*nz;
+
+            }
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   СТЕНЫ
+========================================================= */
+
+function checkWalls(b){
+
+    const left =
+        -TABLE_W/2+BALL_R;
+
+
+    const right =
+        TABLE_W/2-BALL_R;
+
+
+    const top =
+        -TABLE_H/2+BALL_R;
+
+
+    const bottom =
+        TABLE_H/2-BALL_R;
+
+
+    if(b.position.x<left){
+
+        b.position.x=left;
+
+        b.userData.vx*=-.85;
+
+    }
+
+
+    if(b.position.x>right){
+
+        b.position.x=right;
+
+        b.userData.vx*=-.85;
+
+    }
+
+
+    if(b.position.z<top){
+
+        b.position.z=top;
+
+        b.userData.vz*=-.85;
+
+    }
+
+
+    if(b.position.z>bottom){
+
+        b.position.z=bottom;
+
+        b.userData.vz*=-.85;
+
+    }
+
+}
+
+
+/* =========================================================
+   ЛУНКИ
+========================================================= */
+
+function checkPocket(b){
+
+    for(
+        const p of pockets
+    ){
+
+        const dx =
+            b.position.x-p[0];
+
+
+        const dz =
+            b.position.z-p[1];
+
+
+        const distance =
+            Math.sqrt(
+                dx*dx+
+                dz*dz
+            );
+
+
+        if(distance<.55){
+
+            b.userData.vx=0;
+            b.userData.vz=0;
+
+
+            if(b===cueBall){
+
+                b.userData.active=false;
+
+                b.visible=false;
+
+
+                setTimeout(()=>{
+
+                    b.position.set(
+                        -4.5,
+                        .22,
+                        0
+                    );
+
+
+                    b.visible=true;
+
+                    b.userData.active=true;
+
+
+                    nextTurn();
+
+                },700);
+
+
+            }else{
+
+                b.userData.active=false;
+
+                b.visible=false;
+
+
+                scores[currentPlayer]++;
+
+                updateScores();
+
+
+                showMessage(
+                    "🎱 Игрок "+
+                    (currentPlayer+1)+
+                    " забил шар!"
+                );
+
+
+                setTimeout(
+                    hideMessage,
+                    800
+                );
+
+            }
+
+
+            break;
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   КОНЕЦ ХОДА
+========================================================= */
+
+function detectTurnEnd(){
+
+    const moving =
+        isMoving();
+
+
+    if(
+        previousMoving &&
+        !moving
+    ){
+
+        cueStick.visible=true;
+
+        aimLine.visible=true;
+
+
+        updateCue();
+
+        updateAimLine();
+
+        updateCamera();
+
+
+        const remaining =
+            balls.filter(
+                b =>
+                b!==cueBall &&
+                b.userData.active
+            );
+
+
+        if(
+            remaining.length===0
+        ){
+
+            let winner=0;
+
+
+            for(
+                let i=1;
+                i<playerCount;
+                i++
+            ){
+
+                if(
+                    scores[i]>
+                    scores[winner]
+                ){
+
+                    winner=i;
+
+                }
+
+            }
+
+
+            showMessage(
+
+                "🏆 ПОБЕДИЛ ИГРОК "+
+                (winner+1)+
+                "!<br><br>"+
+                "Счёт: "+
+                scores[winner]
+
+            );
+
+        }
+
+    }
+
+
+    previousMoving =
+        moving;
+
+}
+
+
+/* =========================================================
+   СЛЕДУЮЩИЙ ИГРОК
+========================================================= */
+
+function nextTurn(){
+
+    currentPlayer =
+        (currentPlayer+1) %
+        playerCount;
+
+
+    updateScores();
+
+
+    cueStick.visible=true;
+
+    aimLine.visible=true;
+
+
+    showMessage(
+        "Ход игрока "+
+        (currentPlayer+1)
+    );
+
+
+    setTimeout(
+        hideMessage,
+        700
+    );
+
+
+    updateCue();
+
+    updateAimLine();
+
+    updateCamera();
+
+}
+
+
+/* =========================================================
+   UI
+========================================================= */
+
+function updateScores(){
+
+    document.getElementById("turn")
+    .textContent =
+        "Ход: Игрок "+
+        (currentPlayer+1);
+
+
+    for(
+        let i=0;
+        i<4;
+        i++
+    ){
+
+        const el =
+            document.getElementById(
+                "s"+i
+            );
+
+
+        el.style.display =
+            i<playerCount
+            ? "block"
+            : "none";
+
+
+        el.textContent =
+            "Игрок "+
+            (i+1)+
+            ": "+
+            scores[i];
+
+
+        el.classList.toggle(
+            "active",
+            i===currentPlayer
+        );
+
+    }
+
+}
+
+
+function showMessage(text){
+
+    const el =
+        document.getElementById(
+            "message"
+        );
+
+
+    el.innerHTML=text;
+
+    el.style.display="block";
+
+}
+
+
+function hideMessage(){
+
+    document.getElementById(
+        "message"
+    ).style.display="none";
+
+}
+
+
+/* =========================================================
+   RESIZE
+========================================================= */
+
+function resize(){
+
+    camera.aspect =
+        innerWidth/
+        innerHeight;
+
+
+    camera.updateProjectionMatrix();
+
+
+    renderer.setSize(
+        innerWidth,
+        innerHeight
+    );
+
+}
+
+
+/* =========================================================
+   АНИМАЦИЯ
+========================================================= */
+
+function animate(){
+
+    requestAnimationFrame(
+        animate
+    );
+
+
+    const dt =
+        Math.min(
+            clock.getDelta(),
+            .035
+        );
+
+
+    if(isMoving()){
+
+        updatePhysics(dt);
+
+    }else{
+
+        updateAim();
+
+    }
+
+
+    detectTurnEnd();
+
+
+    renderer.render(
+        scene,
+        camera
+    );
+
+}
+
+</script>
+
+</body>
+</html>
+
+```
