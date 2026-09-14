@@ -301,10 +301,10 @@
 
     <div class="card">
       <h3>Цель</h3>
-      <div class="milestone" id="m1">Набрать 5000 мыслей</div>
-      <div class="milestone" id="m2">Кирпичность 500</div>
-      <div class="milestone" id="m3">Иметь 400 кирпичей</div>
-      <div class="milestone" id="m4">Набрать 30000 мыслей</div>
+      <div class="milestone" id="m1">Набрать 500000 мыслей</div>
+      <div class="milestone" id="m2">Кирпичность 50000</div>
+      <div class="milestone" id="m3">Иметь 40000 кирпичей</div>
+      <div class="milestone" id="m4">Набрать 3000000 мыслей</div>
       <div class="milestone" id="m5">Достичь Абсолютного Кирпича</div>
     </div>
 
@@ -340,9 +340,9 @@
 
   // ===== GOAL =====
   // Progress is calculated from multiple factors toward "Absolute Brick"
-  const GOAL_THOUGHTS = 30000;
-  const GOAL_BRICKNESS = 500;
-  const GOAL_BRICKS = 400;
+  const GOAL_THOUGHTS = 3000000;
+  const GOAL_BRICKNESS = 50000;
+  const GOAL_BRICKS = 40000;
 
   let thoughts = 0;
   let brickness = 1;
@@ -575,25 +575,25 @@
     document.getElementById('goalPct').textContent = Math.floor(pct * 100) + '%';
 
     // milestones
-    if (!milestones.m1 && thoughts >= 5000) {
+    if (!milestones.m1 && thoughts >= 500000) {
       milestones.m1 = true;
       document.getElementById('m1').classList.add('done');
-      log('Вехи: набрано 5000 мыслей!');
+      log('Вехи: набрано 500000 мыслей!');
     }
-    if (!milestones.m2 && brickness >= 500) {
+    if (!milestones.m2 && brickness >= 50000) {
       milestones.m2 = true;
       document.getElementById('m2').classList.add('done');
-      log('Вехи: кирпичность 500!');
+      log('Вехи: кирпичность 50000!');
     }
-    if (!milestones.m3 && totalBricks >= 400) {
+    if (!milestones.m3 && totalBricks >= 40000) {
       milestones.m3 = true;
       document.getElementById('m3').classList.add('done');
       log('Вехи: целая кучка кирпичей!');
     }
-    if (!milestones.m4 && thoughts >= 30000) {
+    if (!milestones.m4 && thoughts >= 3000000) {
       milestones.m4 = true;
       document.getElementById('m4').classList.add('done');
-      log('Вехи: 30000 мыслей. Почти просветление...');
+      log('Вехи: 3000000 мыслей. Почти просветление...');
     }
 
     // WIN condition: high progress + key thresholds
