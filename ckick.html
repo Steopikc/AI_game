@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>🐔 Куриный Апокалипсис 3D — Мульти</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #87CEEB; font-family: 'Comic Sans MS', 'Comic Sans', cursive, system-ui; touch-action: none; }
+  canvas { display: block; width: 100% !important; height: 100% !important; }
+
+  #infoContainer {
+    position: absolute; inset: 0; z-index: 100; pointer-events: none;
+  }
+  .player-info {
+    position: absolute; color: white; text-shadow: 2px 2px 0 #000, -1px -1px 0 #000;
+    font-size: clamp(12px, 2.8vw, 18px); display: flex; justify-content: space-between;
+    flex-wrap: wrap; gap: 4px; padding: 6px 8px; pointer-events: none;
+  }
+  .player-info span { white-space: nowrap; }
+
+  .crosshair {
+    position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px;
+    border: 2px solid rgba(255,255,255,0.85); border-radius: 50%;
+    box-shadow: 0 0 6px #000; pointer-events: none; z-index: 100;
+  }
+  .crosshair::before, .crosshair::after { content: ''; position: absolute; background: white; }
+  .crosshair::before { width: 100%; height: 2px; top: 50%; left: 0; margin-top: -1px; }
+  .crosshair::after { width: 2px; height: 100%; left: 50%; top: 0; margin-left: -1px; }
+
+  #startScreen {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.9);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: #FFD700; z-index: 200; text-align: center; padding: 16px;
+  }
+  #startScreen h1 { font-size: clamp(28px, 7vw, 48px); margin: 0 0 10px; text-shadow: 4px 4px 0 #8B0000; line-height: 1.1; }
+  #startScreen p { font-size: clamp(14px, 3.2vw, 18px); color: #fff; max-width: 520px; margin: 6px 0; line-height: 1.35; }
+  #startScreen button, .choice-btn {
+    font-size: clamp(16px, 4vw, 24px); padding: 12px 24px; margin: 8px 6px;
+    background: #FFD700; border: 4px solid #8B0000; color: #8B0000;
+    font-family: inherit; font-weight: bold; cursor: pointer; border-radius: 12px;
+    min-height: 48px; touch-action: manipulation;
+  }
+  #startScreen button:hover, #startScreen button:active,
+  .choice-btn:hover, .choice-btn:active { background: #FFA500; transform: scale(1.03); }
+  .choice-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 12px; }
+
+  #hitFlash {
+    position: absolute; inset: 0; background: red; opacity: 0;
+    pointer-events: none; z-index: 90; transition: opacity 0.2s;
+  }
+  .funny-text {
+    position: absolute; color: #FFD700; font-size: clamp(14px, 3.5vw, 24px);
+    text-shadow: 2px 2px 0 #000; z-index: 100; pointer-events: none;
+    opacity: 0; transition: opacity 0.35s; text-align: center; max-width: 90%;
+  }
+
+  #mobileControls {
+    display: none; position: absolute; inset: 0; z-index: 110; pointer-events: none;
+  }
+  #mobileControls.visible { display: block; }
+
+  .player-controls {
+    position: absolute; pointer-events: none;
+  }
+  .joystick-zone {
+    position: absolute; left: 0; bottom: 0; width: 50%; height: 50%;
+    pointer-events: auto;
+  }
+  .joystick-base {
+    position: absolute; width: 80px; height: 80px; border-radius: 50%;
+    background: rgba(0,0,0,0.45); border: 3px solid rgba(255,255,255,0.6);
+    left: 10px; bottom: 10px;
+  }
+  .joystick-stick {
+    position: absolute; width: 38px; height: 38px; border-radius: 50%;
+    background: rgba(255,215,0,0.95); border: 3px solid #8B0000;
+    left: 50%; top: 50%; margin: -19px 0 0 -19px; transition: none;
+  }
+  .action-btns {
+    position: absolute; right: 8px; bottom: 10px;
+    display: flex; flex-direction: column; gap: 8px; align-items: center;
+    pointer-events: auto;
+  }
+  .action-btn {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: rgba(255,215,0,0.95); border: 3px solid #8B0000;
+    color: #8B0000; font-size: 20px; font-weight: bold;
+    display: flex; align-items: center; justify-content: center;
+    user-select: none; touch-action: manipulation;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+  }
+  .action-btn:active, .action-btn.active { background: #FFA500; transform: scale(0.94); }
+  .action-btn.shoot { width: 62px; height: 62px; font-size: 26px; }
+
+  .look-hint {
+    position: absolute; top: 50%; right: 8%; transform: translateY(-50%);
+    color: rgba(255,255,255,0.55); font-size: 11px; text-align: center;
+    pointer-events: none; text-shadow: 1px 1px 2px #000;
+  }
+
+  .player-label {
+    position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.55); color: #FFD700; font-size: 13px;
+    padding: 2px 10px; border-radius: 8px; pointer-events: none; z-index: 105;
+    text-shadow: 1px 1px 0 #000;
+  }
+
+  .dead-overlay {
+    position: absolute; background: rgba(80,0,0,0.7); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(18px, 4vw, 28px); text-shadow: 2px 2px 0 #000;
+    pointer-events: none; z-index: 95; opacity: 0; transition: opacity 0.3s;
+  }
+  .dead-overlay.visible { opacity: 1; }
+
+  @media (max-width: 500px) {
+    .joystick-base { width: 64px; height: 64px; left: 6px; bottom: 6px; }
+    .joystick-stick { width: 30px; height: 30px; margin: -15px 0 0 -15px; }
+    .action-btn { width: 44px; height: 44px; font-size: 16px; }
+    .action-btn.shoot { width: 52px; height: 52px; font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="infoContainer"></div>
+<div id="hitFlash"></div>
+<div id="mobileControls"></div>
+
+<div id="startScreen">
+  <h1>🐔 КУРИНЫЙ АПОКАЛИПСИС 🥚</h1>
+  <p id="descText">Зомби-фермеры захватили курятник! Ты — последняя боевая курица.
+  Стреляй яйцами, отбивайся и не дай себя ощипать!</p>
+  <p id="controlsText"></p>
+  <div id="choiceArea" class="choice-row"></div>
+  <button id="startBtn" style="display:none">НАЧАТЬ КУРИНУЮ ВОЙНУ!</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ====== УТИЛИТЫ ======
+const isTouchDevice = (() => {
+  const ua = navigator.userAgent || '';
+  const touch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  return touch || /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(ua);
+})();
+
+// ====== СОСТОЯНИЕ ======
+let scene, renderer, clock;
+let players = [];
+let eggs = [], zombies = [], bloodParticles = [];
+let gameRunning = false;
+let lastZombieSpawn = 0;
+let zombieIdCounter = 0;
+let playerCount = 1;
+let isPanelMode = false;
+let keys = {};
+let sharedFunnyTimer = 0;
+
+const funnyMessages = [
+  "ЯЙЦЕ-СНАЙПЕР! 🥚", "ЗОМБИ-ФЕРМЕР ПОЛУЧИЛ ПЕРНАТУЮ АТАКУ!",
+  "КУРИЦА-ТЕРМИНАТОР!", "ОМЛЕТ ИЗ ЗОМБИ!", "ЯИЧКО НЕ ПРОСТОЕ — ЗОЛОТОЕ!",
+  "БУК-БУК-БУК-АААА!", "ЭТО НЕ КУРИЦА, ЭТО ЯЙЦЕМЁТ!",
+  "ФЕРМЕРУ СНЕСЛО КРЫШУ!", "КО-КО-КО-БУМ!",
+  "ЗОМБИ СТАЛ ВЕГЕТАРИАНЦЕМ (не по своей воле)",
+  "ДРУЖЕСКИЙ ОГОНЬ! 🐔💥🐔", "КУРИНАЯ МЕЖДОУСОБИЦА!"
+];
+
+const PLAYER_COLORS = [0xffffff, 0xffcc00, 0x66ccff, 0xff66aa];
+const PLAYER_NAMES = ["Курица 1", "Курица 2", "Курица 3", "Курица 4"];
+
+// ====== ЭКРАНЫ ВЫБОРА ======
+function showDeviceChoice() {
+  const area = document.getElementById('choiceArea');
+  const desc = document.getElementById('descText');
+  const ctrl = document.getElementById('controlsText');
+  document.getElementById('startBtn').style.display = 'none';
+  desc.innerHTML = 'Выбери, на чём играешь:';
+  ctrl.innerHTML = '';
+  area.innerHTML = '';
+  const btnPC = document.createElement('button');
+  btnPC.className = 'choice-btn';
+  btnPC.textContent = '🖥️ ПК (клавиатура + мышь)';
+  btnPC.onclick = () => { isPanelMode = false; playerCount = 1; startGame(); };
+  const btnPanel = document.createElement('button');
+  btnPanel.className = 'choice-btn';
+  btnPanel.textContent = '📱 Панель / Планшет (мульти)';
+  btnPanel.onclick = () => { isPanelMode = true; showPlayerCountChoice(); };
+  area.appendChild(btnPC);
+  area.appendChild(btnPanel);
+}
+
+function showPlayerCountChoice() {
+  const area = document.getElementById('choiceArea');
+  const desc = document.getElementById('descText');
+  const ctrl = document.getElementById('controlsText');
+  desc.innerHTML = 'Сколько кур участвует? (общий экран, разделённый на части)';
+  ctrl.innerHTML = 'Каждый управляет своей курицей. Можно стрелять по зомби и по друзьям!';
+  area.innerHTML = '';
+  [1,2,3,4].forEach(n => {
+    const b = document.createElement('button');
+    b.className = 'choice-btn';
+    b.textContent = n + (n === 1 ? ' игрок' : ' игрока');
+    b.onclick = () => { playerCount = n; startGame(); };
+    area.appendChild(b);
+  });
+  const back = document.createElement('button');
+  back.className = 'choice-btn';
+  back.style.background = '#aaa';
+  back.textContent = '← Назад';
+  back.onclick = showDeviceChoice;
+  area.appendChild(back);
+}
+
+function startGame() {
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('choiceArea').innerHTML = '';
+  init();
+  gameRunning = true;
+  animate();
+  showFunnyGlobal("КО-КО-КО! НАЧАЛИ! 🐔");
+  if (isPanelMode && document.documentElement.requestFullscreen) {
+    try { document.documentElement.requestFullscreen().catch(() => {}); } catch(e) {}
+  }
+}
+
+// ====== ИНИЦИАЛИЗАЦИЯ ======
+function init() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x87CEEB);
+  scene.fog = new THREE.Fog(0x87CEEB, 50, 200);
+
+  renderer = new THREE.WebGLRenderer({ antialias: !isPanelMode || playerCount === 1, powerPreference: 'high-performance' });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isPanelMode ? 1.25 : 2));
+  renderer.shadowMap.enabled = !isPanelMode || playerCount === 1;
+  renderer.setScissorTest(true);
+  document.body.appendChild(renderer.domElement);
+
+  clock = new THREE.Clock();
+
+  const ambient = new THREE.AmbientLight(0xffffff, 0.65);
+  scene.add(ambient);
+  const sun = new THREE.DirectionalLight(0xffffff, 0.95);
+  sun.position.set(40, 80, 40);
+  if (renderer.shadowMap.enabled) {
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    sun.shadow.camera.left = -80;
+    sun.shadow.camera.right = 80;
+    sun.shadow.camera.top = 80;
+    sun.shadow.camera.bottom = -80;
+  }
+  scene.add(sun);
+
+  const groundGeo = new THREE.PlaneGeometry(400, 400);
+  const groundMat = new THREE.MeshStandardMaterial({ color: 0x3a8c3a });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  createFences();
+
+  // Создаём игроков
+  players = [];
+  const infoContainer = document.getElementById('infoContainer');
+  infoContainer.innerHTML = '';
+  const mobileCtrls = document.getElementById('mobileControls');
+  mobileCtrls.innerHTML = '';
+  mobileCtrls.classList.toggle('visible', isPanelMode || isTouchDevice);
+
+  for (let i = 0; i < playerCount; i++) {
+    const p = createPlayer(i);
+    players.push(p);
+    setupPlayerUI(p, i);
+  }
+
+  // Начальные зомби
+  const startZ = Math.min(4 + playerCount, 8);
+  for (let i = 0; i < startZ; i++) spawnZombie();
+
+  setupInput();
+  window.addEventListener('resize', onResize);
+  layoutViewports();
+}
+
+function createPlayer(idx) {
+  const angle = (idx / Math.max(playerCount, 1)) * Math.PI * 2;
+  const dist = playerCount > 1 ? 8 : 0;
+  const player = {
+    id: idx,
+    position: new THREE.Vector3(Math.cos(angle) * dist, 1.7, Math.sin(angle) * dist),
+    yaw: -angle + Math.PI,
+    pitch: 0,
+    hp: 100,
+    score: 0,
+    kills: 0,
+    dead: false,
+    moveInput: { x: 0, z: 0 },
+    isJumping: false,
+    lastShot: 0,
+    cameraShake: 0,
+    joystickActive: false,
+    joystickPointerId: null,
+    lookPointerId: null,
+    lastLookX: 0,
+    lastLookY: 0,
+    camera: null,
+    body: null, // 3rd person model for others
+    color: PLAYER_COLORS[idx]
+  };
+
+  // Камера
+  player.camera = new THREE.PerspectiveCamera(70, 1, 0.1, 500);
+
+  // 1st person decorations (крылья и т.п. только для своей камеры)
+  const wingMat = new THREE.MeshStandardMaterial({ color: player.color });
+  const leftWing = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.09, 0.7), wingMat);
+  leftWing.position.set(-0.65, -0.28, -0.45);
+  leftWing.rotation.z = 0.28;
+  player.camera.add(leftWing);
+  const rightWing = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.09, 0.7), wingMat);
+  rightWing.position.set(0.65, -0.28, -0.45);
+  rightWing.rotation.z = -0.28;
+  player.camera.add(rightWing);
+
+  const comb = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.26, 6), new THREE.MeshStandardMaterial({ color: 0xff2222 }));
+  comb.position.set(0, 0.38, -0.28);
+  player.camera.add(comb);
+
+  const beak = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.26, 4), new THREE.MeshStandardMaterial({ color: 0xffaa00 }));
+  beak.rotation.x = Math.PI / 2;
+  beak.position.set(0, -0.08, -0.62);
+  player.camera.add(beak);
+
+  // 3rd person body (видимый другими)
+  player.body = createChickenBody(player.color);
+  player.body.position.copy(player.position);
+  player.body.position.y = 0;
+  scene.add(player.body);
+
+  return player;
+}
+
+function createChickenBody(color) {
+  const g = new THREE.Group();
+  const bodyMat = new THREE.MeshStandardMaterial({ color });
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.45, 10, 10), bodyMat);
+  body.scale.set(1, 1.15, 1.2);
+  body.position.y = 0.85;
+  body.castShadow = true;
+  g.add(body);
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 8), bodyMat);
+  head.position.set(0, 1.45, -0.25);
+  g.add(head);
+
+  const comb = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.22, 5), new THREE.MeshStandardMaterial({ color: 0xff2222 }));
+  comb.position.set(0, 1.75, -0.22);
+  g.add(comb);
+
+  const beak = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.18, 4), new THREE.MeshStandardMaterial({ color: 0xffaa00 }));
+  beak.rotation.x = Math.PI / 2;
+  beak.position.set(0, 1.4, -0.52);
+  g.add(beak);
+
+  const wingL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.35, 0.55), bodyMat);
+  wingL.position.set(-0.5, 0.9, 0);
+  g.add(wingL);
+  const wingR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.35, 0.55), bodyMat);
+  wingR.position.set(0.5, 0.9, 0);
+  g.add(wingR);
+
+  const legL = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.4, 5), new THREE.MeshStandardMaterial({ color: 0xffaa00 }));
+  legL.position.set(-0.15, 0.25, 0);
+  g.add(legL);
+  const legR = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.4, 5), new THREE.MeshStandardMaterial({ color: 0xffaa00 }));
+  legR.position.set(0.15, 0.25, 0);
+  g.add(legR);
+
+  return g;
+}
+
+function setupPlayerUI(p, idx) {
+  const info = document.createElement('div');
+  info.className = 'player-info';
+  info.id = 'info' + idx;
+  info.innerHTML = `<span>🥚 <span id="score${idx}">0</span></span>
+    <span>🐔 HP: <span id="hp${idx}">100</span></span>
+    <span>💀 <span id="kills${idx}">0</span></span>`;
+  document.getElementById('infoContainer').appendChild(info);
+
+  const cross = document.createElement('div');
+  cross.className = 'crosshair';
+  cross.id = 'cross' + idx;
+  document.getElementById('infoContainer').appendChild(cross);
+
+  const funny = document.createElement('div');
+  funny.className = 'funny-text';
+  funny.id = 'funny' + idx;
+  document.getElementById('infoContainer').appendChild(funny);
+
+  const label = document.createElement('div');
+  label.className = 'player-label';
+  label.id = 'label' + idx;
+  label.textContent = PLAYER_NAMES[idx];
+  document.getElementById('infoContainer').appendChild(label);
+
+  const dead = document.createElement('div');
+  dead.className = 'dead-overlay';
+  dead.id = 'dead' + idx;
+  dead.textContent = '🍗 ОЩИПАЛИ!';
+  document.getElementById('infoContainer').appendChild(dead);
+
+  if (isPanelMode || isTouchDevice) {
+    const ctrl = document.createElement('div');
+    ctrl.className = 'player-controls';
+    ctrl.id = 'ctrl' + idx;
+    ctrl.innerHTML = `
+      <div class="joystick-zone" id="joyZone${idx}">
+        <div class="joystick-base" id="joyBase${idx}">
+          <div class="joystick-stick" id="joyStick${idx}"></div>
+        </div>
+      </div>
+      <div class="action-btns">
+        <div class="action-btn" id="jumpBtn${idx}">↑</div>
+        <div class="action-btn shoot" id="shootBtn${idx}">🥚</div>
+      </div>
+      <div class="look-hint" id="lookHint${idx}">↔️ тяни</div>
+    `;
+    document.getElementById('mobileControls').appendChild(ctrl);
+  }
+}
+
+function layoutViewports() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  // Координаты в CSS-стиле: y=0 сверху экрана
+  const layouts = {
+    1: [{ x: 0, y: 0, w: 1, h: 1 }],
+    2: [
+      { x: 0, y: 0, w: 0.5, h: 1 },
+      { x: 0.5, y: 0, w: 0.5, h: 1 }
+    ],
+    3: [
+      { x: 0, y: 0, w: 0.5, h: 0.5 },
+      { x: 0.5, y: 0, w: 0.5, h: 0.5 },
+      { x: 0, y: 0.5, w: 1, h: 0.5 }
+    ],
+    4: [
+      { x: 0, y: 0, w: 0.5, h: 0.5 },
+      { x: 0.5, y: 0, w: 0.5, h: 0.5 },
+      { x: 0, y: 0.5, w: 0.5, h: 0.5 },
+      { x: 0.5, y: 0.5, w: 0.5, h: 0.5 }
+    ]
+  };
+  const lay = layouts[playerCount] || layouts[1];
+
+  players.forEach((p, i) => {
+    const L = lay[i];
+    const cssX = Math.floor(L.x * w);
+    const cssY = Math.floor(L.y * h);   // от верха
+    const cssW = Math.floor(L.w * w);
+    const cssH = Math.floor(L.h * h);
+    // WebGL: y=0 снизу
+    const glY = h - cssY - cssH;
+
+    p.vp = {
+      x: cssX,
+      y: cssY,       // для CSS / touch
+      glY: glY,      // для setViewport / setScissor
+      w: cssW,
+      h: cssH
+    };
+    p.camera.aspect = p.vp.w / Math.max(p.vp.h, 1);
+    p.camera.updateProjectionMatrix();
+
+    // Позиционируем UI (CSS top/left)
+    const info = document.getElementById('info' + i);
+    const cross = document.getElementById('cross' + i);
+    const funny = document.getElementById('funny' + i);
+    const label = document.getElementById('label' + i);
+    const dead = document.getElementById('dead' + i);
+    const ctrl = document.getElementById('ctrl' + i);
+
+    const stylePos = (el, top, left, width, height) => {
+      if (!el) return;
+      el.style.top = top + 'px';
+      el.style.left = left + 'px';
+      if (width != null) el.style.width = width + 'px';
+      if (height != null) el.style.height = height + 'px';
+    };
+
+    stylePos(info, cssY + 4, cssX + 4, cssW - 8, null);
+    stylePos(cross, cssY + cssH / 2, cssX + cssW / 2);
+    stylePos(funny, cssY + cssH * 0.68, cssX + cssW * 0.05, cssW * 0.9, null);
+    stylePos(label, cssY + 2, cssX);
+    stylePos(dead, cssY, cssX, cssW, cssH);
+
+    if (ctrl) {
+      ctrl.style.left = cssX + 'px';
+      ctrl.style.top = cssY + 'px';
+      ctrl.style.width = cssW + 'px';
+      ctrl.style.height = cssH + 'px';
+    }
+  });
+}
+
+function onResize() {
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  layoutViewports();
+}
+
+// ====== ВВОД ======
+function setupInput() {
+  document.addEventListener('keydown', e => {
+    keys[e.code] = true;
+    if (e.code === 'Space') e.preventDefault();
+  });
+  document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+  if (!isPanelMode) {
+    // PC single
+    document.addEventListener('mousemove', onMouseMovePC);
+    document.addEventListener('mousedown', e => {
+      if (!gameRunning || e.button !== 0) return;
+      if (players[0] && !players[0].dead) throwEgg(players[0]);
+    });
+    renderer.domElement.addEventListener('click', () => {
+      if (gameRunning && document.pointerLockElement !== renderer.domElement) {
+        renderer.domElement.requestPointerLock();
+      }
+    });
+  }
+
+  if (isPanelMode || isTouchDevice) {
+    players.forEach((p, i) => {
+      setupJoystick(p, i);
+      setupActionButtons(p, i);
+      setupTouchLook(p, i);
+    });
+  }
+}
+
+function onMouseMovePC(e) {
+  if (!gameRunning || isPanelMode) return;
+  if (document.pointerLockElement !== renderer.domElement) return;
+  const p = players[0];
+  if (!p || p.dead) return;
+  p.yaw -= e.movementX * 0.0022;
+  p.pitch -= e.movementY * 0.0022;
+  p.pitch = Math.max(-1.2, Math.min(1.2, p.pitch));
+}
+
+function setupJoystick(p, idx) {
+  const zone = document.getElementById('joyZone' + idx);
+  const base = document.getElementById('joyBase' + idx);
+  const stick = document.getElementById('joyStick' + idx);
+  if (!zone) return;
+  const MAX = 36;
+
+  function getCenter() {
+    const rect = base.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  }
+  function updateStick(cx, cy) {
+    const c = getCenter();
+    let dx = cx - c.x, dy = cy - c.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > MAX) { dx = (dx / dist) * MAX; dy = (dy / dist) * MAX; }
+    stick.style.transform = `translate(${dx}px, ${dy}px)`;
+    p.moveInput.x = dx / MAX;
+    p.moveInput.z = dy / MAX;
+  }
+  function reset() {
+    stick.style.transform = 'translate(0,0)';
+    p.moveInput.x = 0; p.moveInput.z = 0;
+    p.joystickActive = false;
+    p.joystickPointerId = null;
+  }
+
+  zone.addEventListener('pointerdown', e => {
+    if (!gameRunning || p.dead) return;
+    e.preventDefault();
+    p.joystickActive = true;
+    p.joystickPointerId = e.pointerId;
+    zone.setPointerCapture(e.pointerId);
+    updateStick(e.clientX, e.clientY);
+  }, { passive: false });
+  zone.addEventListener('pointermove', e => {
+    if (!p.joystickActive || e.pointerId !== p.joystickPointerId) return;
+    e.preventDefault();
+    updateStick(e.clientX, e.clientY);
+  }, { passive: false });
+  zone.addEventListener('pointerup', e => { if (e.pointerId === p.joystickPointerId) reset(); });
+  zone.addEventListener('pointercancel', e => { if (e.pointerId === p.joystickPointerId) reset(); });
+}
+
+function setupActionButtons(p, idx) {
+  const shootBtn = document.getElementById('shootBtn' + idx);
+  const jumpBtn = document.getElementById('jumpBtn' + idx);
+  if (!shootBtn) return;
+
+  const startShoot = (e) => {
+    e.preventDefault(); e.stopPropagation();
+    shootBtn.classList.add('active');
+    if (!p.dead) throwEgg(p);
+  };
+  const endShoot = () => shootBtn.classList.remove('active');
+  shootBtn.addEventListener('pointerdown', startShoot, { passive: false });
+  shootBtn.addEventListener('pointerup', endShoot);
+  shootBtn.addEventListener('pointerleave', endShoot);
+  shootBtn.addEventListener('pointercancel', endShoot);
+
+  jumpBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    jumpBtn.classList.add('active');
+    p.isJumping = true;
+  }, { passive: false });
+  const endJump = () => { jumpBtn.classList.remove('active'); p.isJumping = false; };
+  jumpBtn.addEventListener('pointerup', endJump);
+  jumpBtn.addEventListener('pointerleave', endJump);
+  jumpBtn.addEventListener('pointercancel', endJump);
+}
+
+function setupTouchLook(p, idx) {
+  const canvas = renderer.domElement;
+  const sens = 0.0032;
+
+  canvas.addEventListener('pointerdown', e => {
+    if (!gameRunning || p.dead) return;
+    if (e.pointerId === p.joystickPointerId) return;
+    // Проверяем, что касание в зоне этого игрока
+    const vp = p.vp;
+    if (!vp) return;
+    if (e.clientX < vp.x || e.clientX > vp.x + vp.w || e.clientY < vp.y || e.clientY > vp.y + vp.h) return;
+    // Игнорируем джойстик и кнопки
+    if (e.target.closest && e.target.closest('.action-btn, .joystick-zone')) return;
+    // Не левая нижняя зона (джойстик)
+    const relX = (e.clientX - vp.x) / vp.w;
+    const relY = (e.clientY - vp.y) / vp.h;
+    if (relX < 0.45 && relY > 0.5) return;
+
+    p.lookPointerId = e.pointerId;
+    p.lastLookX = e.clientX;
+    p.lastLookY = e.clientY;
+    try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+  }, { passive: true });
+
+  canvas.addEventListener('pointermove', e => {
+    if (!gameRunning || e.pointerId !== p.lookPointerId || p.dead) return;
+    const dx = e.clientX - p.lastLookX;
+    const dy = e.clientY - p.lastLookY;
+    p.lastLookX = e.clientX;
+    p.lastLookY = e.clientY;
+    p.yaw -= dx * sens;
+    p.pitch -= dy * sens;
+    p.pitch = Math.max(-1.2, Math.min(1.2, p.pitch));
+  }, { passive: true });
+
+  const endLook = (e) => {
+    if (e.pointerId === p.lookPointerId) p.lookPointerId = null;
+  };
+  canvas.addEventListener('pointerup', endLook);
+  canvas.addEventListener('pointercancel', endLook);
+}
+
+// ====== ЗАБОР ======
+function createFences() {
+  const fenceMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+  const postGeo = new THREE.BoxGeometry(0.28, 1.9, 0.28);
+  const railGeo = new THREE.BoxGeometry(3.8, 0.18, 0.18);
+  const half = 55, step = 4;
+  for (let i = -half; i <= half; i += step) {
+    [-half, half].forEach(z => {
+      const post = new THREE.Mesh(postGeo, fenceMat);
+      post.position.set(i, 0.95, z);
+      post.castShadow = true;
+      scene.add(post);
+      if (i < half) {
+        const rail = new THREE.Mesh(railGeo, fenceMat);
+        rail.position.set(i + step / 2, 0.95, z);
+        scene.add(rail);
+      }
+    });
+    [-half, half].forEach(x => {
+      const post = new THREE.Mesh(postGeo, fenceMat);
+      post.position.set(x, 0.95, i);
+      post.castShadow = true;
+      scene.add(post);
+      if (i < half) {
+        const rail = new THREE.Mesh(railGeo, fenceMat);
+        rail.position.set(x, 0.95, i + step / 2);
+        rail.rotation.y = Math.PI / 2;
+        scene.add(rail);
+      }
+    });
+  }
+}
+
+// ====== ЗОМБИ ======
+function createZombieModel() {
+  const group = new THREE.Group();
+  const skinMat = new THREE.MeshStandardMaterial({ color: 0x7ba05b });
+  const clothesMat = new THREE.MeshStandardMaterial({ color: 0x4a3520 });
+  const eyeMat = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xaa0000 });
+
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.35, 0.55), clothesMat);
+  body.position.y = 1.55; body.castShadow = true; group.add(body);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.75, 0.75), skinMat);
+  head.position.y = 2.55; head.castShadow = true; group.add(head);
+
+  const eyeGeo = new THREE.SphereGeometry(0.09, 6, 6);
+  const eyeL = new THREE.Mesh(eyeGeo, eyeMat); eyeL.position.set(-0.18, 2.62, -0.38); group.add(eyeL);
+  const eyeR = new THREE.Mesh(eyeGeo, eyeMat); eyeR.position.set(0.18, 2.62, -0.38); group.add(eyeR);
+
+  const armGeo = new THREE.BoxGeometry(0.22, 0.22, 1.1);
+  const armL = new THREE.Mesh(armGeo, skinMat); armL.position.set(-0.65, 1.9, -0.45); group.add(armL);
+  const armR = new THREE.Mesh(armGeo, skinMat); armR.position.set(0.65, 1.9, -0.45); group.add(armR);
+
+  const legGeo = new THREE.BoxGeometry(0.28, 0.95, 0.28);
+  const legL = new THREE.Mesh(legGeo, clothesMat); legL.position.set(-0.22, 0.48, 0); legL.castShadow = true; group.add(legL);
+  const legR = new THREE.Mesh(legGeo, clothesMat); legR.position.set(0.22, 0.48, 0); legR.castShadow = true; group.add(legR);
+
+  const hatMat = new THREE.MeshStandardMaterial({ color: 0xd4a017 });
+  const hatTop = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.26, 8), hatMat);
+  hatTop.position.y = 3.05; group.add(hatTop);
+  const hatBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.65, 0.07, 10), hatMat);
+  hatBrim.position.y = 2.92; group.add(hatBrim);
+
+  const pitchforkMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.8, 5), pitchforkMat);
+  handle.position.set(0.65, 2.35, -0.9); group.add(handle);
+
+  return group;
+}
+
+function spawnZombie() {
+  const zombie = createZombieModel();
+  const angle = Math.random() * Math.PI * 2;
+  const dist = 30 + Math.random() * 30;
+  zombie.position.set(Math.cos(angle) * dist, 0, Math.sin(angle) * dist);
+  zombie.userData = {
+    id: zombieIdCounter++,
+    hp: 3,
+    speed: 1.7 + Math.random() * 1.5,
+    wobble: Math.random() * Math.PI * 2,
+    alive: true,
+    lastAttack: 0,
+    targetId: -1
+  };
+  zombies.push(zombie);
+  scene.add(zombie);
+}
+
+// ====== ЯЙЦО ======
+function throwEgg(p) {
+  if (!gameRunning || p.dead) return;
+  const now = performance.now();
+  if (now - p.lastShot < 280) return;
+  p.lastShot = now;
+
+  const eggGeo = new THREE.SphereGeometry(0.22, 8, 8);
+  const eggMat = new THREE.MeshStandardMaterial({ color: 0xfff8dc, emissive: 0x221100 });
+  const egg = new THREE.Mesh(eggGeo, eggMat);
+  egg.scale.set(1, 1.35, 1);
+
+  const startPos = new THREE.Vector3();
+  p.camera.getWorldPosition(startPos);
+  egg.position.copy(startPos);
+
+  const direction = new THREE.Vector3();
+  p.camera.getWorldDirection(direction);
+
+  egg.userData = {
+    velocity: direction.clone().multiplyScalar(38),
+    life: 2.8,
+    ownerId: p.id
+  };
+  eggs.push(egg);
+  scene.add(egg);
+  p.cameraShake = 0.22;
+}
+
+// ====== ЧАСТИЦЫ / UI ======
+function spawnBlood(pos) {
+  const colors = [0xff0000, 0xff6600, 0xffff00];
+  const count = (isPanelMode && playerCount > 2) ? 6 : 12;
+  for (let i = 0; i < count; i++) {
+    const pr = new THREE.Mesh(
+      new THREE.SphereGeometry(0.09, 4, 4),
+      new THREE.MeshBasicMaterial({ color: colors[Math.floor(Math.random() * 3)] })
+    );
+    pr.position.copy(pos);
+    pr.userData = {
+      vel: new THREE.Vector3((Math.random()-0.5)*7, Math.random()*7, (Math.random()-0.5)*7),
+      life: 0.85
+    };
+    bloodParticles.push(pr);
+    scene.add(pr);
+  }
+}
+
+function showFunny(p, text) {
+  const el = document.getElementById('funny' + p.id);
+  if (!el) return;
+  el.textContent = text;
+  el.style.opacity = '1';
+  setTimeout(() => { el.style.opacity = '0'; }, 1300);
+}
+
+function showFunnyGlobal(text) {
+  players.forEach(p => showFunny(p, text));
+}
+
+function takeDamage(p, amount, fromPvp) {
+  if (p.dead) return;
+  p.hp -= amount;
+  const flash = document.getElementById('hitFlash');
+  flash.style.opacity = '0.4';
+  setTimeout(() => { flash.style.opacity = '0'; }, 150);
+  p.cameraShake = 0.65;
+  document.getElementById('hp' + p.id).textContent = Math.max(0, Math.round(p.hp));
+  if (p.hp <= 0) {
+    p.dead = true;
+    p.hp = 0;
+    document.getElementById('dead' + p.id).classList.add('visible');
+    showFunny(p, fromPvp ? "ДРУЖЕСКИЙ ОГОНЬ! 🐔" : "АЙ! ТЕБЯ ОЩИПАЛИ! 🧟");
+    checkAllDead();
+  }
+}
+
+function checkAllDead() {
+  if (players.every(p => p.dead)) {
+    gameRunning = false;
+    if (document.exitPointerLock) document.exitPointerLock();
+    setTimeout(() => {
+      const screen = document.getElementById('startScreen');
+      screen.style.display = 'flex';
+      screen.querySelector('h1').textContent = '🍗 ВСЕХ ОЩИПАЛИ! 🍗';
+      let stats = players.map((p, i) => `${PLAYER_NAMES[i]}: ${p.kills} убийств, ${p.score} очков`).join('<br>');
+      document.getElementById('descText').innerHTML = stats + '<br><br>Куриное правосудие свершилось... почти.';
+      document.getElementById('controlsText').innerHTML = '';
+      const area = document.getElementById('choiceArea');
+      area.innerHTML = '';
+      const again = document.createElement('button');
+      again.className = 'choice-btn';
+      again.textContent = 'ЕЩЁ РАЗ!';
+      again.onclick = () => {
+        // Полный рестарт
+        cleanup();
+        showDeviceChoice();
+      };
+      area.appendChild(again);
+    }, 800);
+  }
+}
+
+function cleanup() {
+  // Очистка сцены и DOM
+  while (scene && scene.children.length) scene.remove(scene.children[0]);
+  eggs = []; zombies = []; bloodParticles = [];
+  players.forEach(p => {
+    if (p.body) scene.remove(p.body);
+  });
+  players = [];
+  if (renderer && renderer.domElement.parentNode) {
+    renderer.domElement.parentNode.removeChild(renderer.domElement);
+  }
+  document.getElementById('infoContainer').innerHTML = '';
+  document.getElementById('mobileControls').innerHTML = '';
+  document.getElementById('mobileControls').classList.remove('visible');
+  document.getElementById('hitFlash').style.opacity = '0';
+}
+
+// ====== ГЛАВНЫЙ ЦИКЛ ======
+function animate() {
+  if (!gameRunning) return;
+  requestAnimationFrame(animate);
+
+  const delta = Math.min(clock.getDelta(), 0.08);
+  const time = clock.elapsedTime;
+  const now = performance.now();
+
+  // Обновление игроков
+  players.forEach((p, idx) => {
+    if (p.dead) {
+      // Тело лежит
+      if (p.body) {
+        p.body.rotation.x = Math.PI / 2;
+        p.body.position.y = 0.3;
+      }
+      return;
+    }
+
+    let moveX = 0, moveZ = 0;
+    if (isPanelMode || isTouchDevice) {
+      moveX = p.moveInput.x;
+      moveZ = p.moveInput.z;
+    } else if (idx === 0) {
+      if (keys['KeyW'] || keys['ArrowUp']) moveZ -= 1;
+      if (keys['KeyS'] || keys['ArrowDown']) moveZ += 1;
+      if (keys['KeyA'] || keys['ArrowLeft']) moveX -= 1;
+      if (keys['KeyD'] || keys['ArrowRight']) moveX += 1;
+      if (keys['Space']) p.isJumping = true;
+      else p.isJumping = false;
+    }
+
+    const len = Math.hypot(moveX, moveZ);
+    if (len > 1) { moveX /= len; moveZ /= len; }
+
+    const speed = 7.5;
+    const forward = new THREE.Vector3(-Math.sin(p.yaw), 0, -Math.cos(p.yaw));
+    const right = new THREE.Vector3(Math.cos(p.yaw), 0, -Math.sin(p.yaw));
+    const moveDir = new THREE.Vector3().addScaledVector(right, moveX).addScaledVector(forward, -moveZ);
+    p.position.addScaledVector(moveDir, speed * delta);
+
+    let targetY = 1.7;
+    if (p.isJumping && p.position.y < 2.1) targetY = 2.55;
+    p.position.y += (targetY - p.position.y) * Math.min(1, 12 * delta);
+
+    p.position.x = Math.max(-52, Math.min(52, p.position.x));
+    p.position.z = Math.max(-52, Math.min(52, p.position.z));
+
+    // Камера
+    p.camera.position.copy(p.position);
+    p.camera.rotation.order = 'YXZ';
+    p.camera.rotation.y = p.yaw;
+    p.camera.rotation.x = p.pitch;
+
+    if (p.cameraShake > 0.01) {
+      p.camera.position.x += (Math.random() - 0.5) * p.cameraShake * 0.25;
+      p.camera.position.y += (Math.random() - 0.5) * p.cameraShake * 0.25;
+      p.camera.rotation.z = (Math.random() - 0.5) * p.cameraShake * 0.08;
+      p.cameraShake *= 0.82;
+    } else {
+      p.camera.rotation.z = 0;
+    }
+
+    // Анимация крыльев
+    const walkAmp = len > 0.1 ? 0.18 : 0.04;
+    p.camera.children.forEach(c => {
+      if (c.geometry && c.geometry.type === 'BoxGeometry' && Math.abs(c.position.x) > 0.3) {
+        c.rotation.z = (c.position.x < 0 ? 0.28 : -0.28) + Math.sin(time * 11) * walkAmp;
+      }
+    });
+
+    // 3rd person body (модель смотрит в -Z, как камера по умолчанию)
+    if (p.body) {
+      p.body.position.x = p.position.x;
+      p.body.position.z = p.position.z;
+      p.body.position.y = p.position.y - 1.7;
+      p.body.rotation.y = p.yaw;
+      p.body.visible = true;
+    }
+  });
+
+  // Скрываем своё тело от своей камеры (простая проверка в render)
+  // (в render loop ниже)
+
+  // Спавн зомби
+  const maxZ = isPanelMode ? 8 + playerCount * 2 : 14;
+  if (now - lastZombieSpawn > 1600 && zombies.length < maxZ) {
+    spawnZombie();
+    lastZombieSpawn = now;
+  }
+
+  // Зомби AI — идут к ближайшему живому игроку
+  for (let i = zombies.length - 1; i >= 0; i--) {
+    const z = zombies[i];
+    if (!z.userData.alive) {
+      scene.remove(z);
+      zombies.splice(i, 1);
+      continue;
+    }
+
+    let nearest = null, nearestDist = Infinity;
+    players.forEach(pl => {
+      if (pl.dead) return;
+      const d = z.position.distanceTo(pl.position);
+      if (d < nearestDist) { nearestDist = d; nearest = pl; }
+    });
+
+    if (nearest) {
+      const dir = new THREE.Vector3().subVectors(nearest.position, z.position);
+      dir.y = 0;
+      const dist = dir.length();
+      if (dist > 0.01) dir.normalize();
+
+      z.userData.wobble += delta * 7;
+      z.position.x += dir.x * z.userData.speed * delta;
+      z.position.z += dir.z * z.userData.speed * delta;
+      z.rotation.z = Math.sin(z.userData.wobble) * 0.12;
+      z.rotation.y = Math.atan2(dir.x, dir.z);
+
+      if (dist < 2.3 && now - z.userData.lastAttack > 750) {
+        z.userData.lastAttack = now;
+        takeDamage(nearest, 9, false);
+        showFunny(nearest, "АЙ! ЗОМБИ-ФЕРМЕР УКУСИЛ! 🧟");
+      }
+    }
+  }
+
+  // Яйца
+  for (let i = eggs.length - 1; i >= 0; i--) {
+    const egg = eggs[i];
+    egg.userData.velocity.y -= 22 * delta;
+    egg.position.addScaledVector(egg.userData.velocity, delta);
+    egg.rotation.x += delta * 9;
+    egg.rotation.z += delta * 7;
+    egg.userData.life -= delta;
+
+    if (egg.position.y < 0.08 || egg.userData.life <= 0) {
+      if (egg.position.y < 0.08) spawnBlood(egg.position);
+      scene.remove(egg);
+      eggs.splice(i, 1);
+      continue;
+    }
+
+    let hit = false;
+    // По зомби
+    for (const z of zombies) {
+      if (!z.userData.alive || hit) continue;
+      const target = z.position.clone().add(new THREE.Vector3(0, 1.4, 0));
+      if (egg.position.distanceTo(target) < 1.25) {
+        hit = true;
+        z.userData.hp--;
+        spawnBlood(egg.position);
+        const owner = players[egg.userData.ownerId];
+        if (z.userData.hp <= 0) {
+          z.userData.alive = false;
+          if (owner && !owner.dead) {
+            owner.kills++;
+            owner.score += 100;
+            document.getElementById('kills' + owner.id).textContent = owner.kills;
+            document.getElementById('score' + owner.id).textContent = owner.score;
+            showFunny(owner, funnyMessages[Math.floor(Math.random() * (funnyMessages.length - 2))]);
+          }
+        }
+        scene.remove(egg);
+        eggs.splice(i, 1);
+        break;
+      }
+    }
+    if (hit) continue;
+
+    // PvP — по другим игрокам
+    for (const pl of players) {
+      if (pl.dead || pl.id === egg.userData.ownerId) continue;
+      const target = pl.position.clone();
+      if (egg.position.distanceTo(target) < 1.1) {
+        hit = true;
+        spawnBlood(egg.position);
+        takeDamage(pl, 25, true);
+        const owner = players[egg.userData.ownerId];
+        if (owner && !owner.dead) {
+          owner.score += 50;
+          document.getElementById('score' + owner.id).textContent = owner.score;
+          showFunny(owner, "ДРУЖЕСКИЙ ОГОНЬ! 🐔💥");
+          showFunny(pl, "ТЕБЯ ПОПАЛИ ЯЙЦОМ! 🥚");
+        }
+        scene.remove(egg);
+        eggs.splice(i, 1);
+        break;
+      }
+    }
+  }
+
+  // Частицы
+  for (let i = bloodParticles.length - 1; i >= 0; i--) {
+    const pr = bloodParticles[i];
+    pr.userData.vel.y -= 18 * delta;
+    pr.position.addScaledVector(pr.userData.vel, delta);
+    pr.userData.life -= delta * 1.4;
+    const s = Math.max(0.01, pr.userData.life);
+    pr.scale.setScalar(s);
+    if (pr.userData.life <= 0) {
+      scene.remove(pr);
+      bloodParticles.splice(i, 1);
+    }
+  }
+
+  // Рендер split-screen
+  const clearColor = scene.background;
+  renderer.setClearColor(clearColor);
+  renderer.clear();
+
+  players.forEach((p, i) => {
+    // Скрываем своё тело
+    if (p.body) p.body.visible = false;
+    // Показываем чужие
+    players.forEach((other, j) => {
+      if (other.body && j !== i) other.body.visible = !other.dead || true;
+    });
+
+    const vp = p.vp;
+    renderer.setViewport(vp.x, vp.glY, vp.w, vp.h);
+    renderer.setScissor(vp.x, vp.glY, vp.w, vp.h);
+    renderer.render(scene, p.camera);
+
+    // Восстанавливаем видимость
+    if (p.body) p.body.visible = true;
+  });
+}
+
+// Старт
+showDeviceChoice();
+</script>
+</body>
+</html>
