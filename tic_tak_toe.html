@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Крестики-нолики</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600&display=swap');
+  
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    overflow: hidden;
+  }
+  
+  .glow {
+    position: absolute;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, #6366f1 0%, transparent 70%);
+    filter: blur(80px);
+    opacity: 0.3;
+    z-index: 0;
+  }
+  
+  .container {
+    position: relative;
+    z-index: 1;
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 24px;
+    padding: 40px;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    text-align: center;
+  }
+  
+  h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2rem;
+    background: linear-gradient(90deg, #818cf8, #c084fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  
+  .status {
+    font-size: 1.25rem;
+    margin-bottom: 28px;
+    height: 32px;
+    font-weight: 600;
+  }
+  
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    width: 300px;
+    margin: 0 auto 30px;
+  }
+  
+  .cell {
+    aspect-ratio: 1;
+    background: rgba(30, 41, 59, 0.8);
+    border: 2px solid rgba(99, 102, 241, 0.3);
+    border-radius: 16px;
+    font-size: 3rem;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .cell:hover:not(:disabled) {
+    background: rgba(99, 102, 241, 0.2);
+    border-color: #818cf8;
+    transform: scale(1.05);
+  }
+  
+  .cell:disabled { cursor: default; }
+  .cell.x { color: #38bdf8; text-shadow: 0 0 20px #38bdf8; }
+  .cell.o { color: #f472b6; text-shadow: 0 0 20px #f472b6; }
+  
+  .btn {
+    background: linear-gradient(90deg, #6366f1, #a855f7);
+    border: none;
+    color: white;
+    padding: 14px 32px;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+  }
+  
+  .btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(99, 102, 241, 0.6);
+  }
+</style>
+</head>
+<body>
+  <div class="glow" style="top: -100px; left: -100px;"></div>
+  <div class="glow" style="bottom: -100px; right: -100px; background: radial-gradient(circle, #ec4899 0%, transparent 70%);"></div>
+  
+  <div class="container">
+    <h1>КРЕСТИКИ-НОЛИКИ</h1>
+    <div class="status" id="status">Ход игрока X</div>
+    <div class="board" id="board"></div>
+    <button class="btn" onclick="reset()">Новая игра</button>
+  </div>
+
+<script>
+  let board = Array(9).fill(null);
+  let current = 'X';
+  let over = false;
+
+  function init() {
+    const b = document.getElementById('board');
+    b.innerHTML = '';
+    for (let i = 0; i < 9; i++) {
+      const cell = document.createElement('button');
+      cell.className = 'cell';
+      cell.onclick = () => move(i);
+      b.appendChild(cell);
+    }
+    update();
+  }
+
+  function move(i) {
+    if (board[i] || over) return;
+    board[i] = current;
+    if (checkWin()) {
+      document.getElementById('status').textContent = `Победил ${current}!`;
+      over = true;
+    } else if (board.every(c => c)) {
+      document.getElementById('status').textContent = 'Ничья!';
+      over = true;
+    } else {
+      current = current === 'X' ? 'O' : 'X';
+      document.getElementById('status').textContent = `Ход игрока ${current}`;
+    }
+    update();
+  }
+
+  function checkWin() {
+    const w = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    return w.some(([a,b,c]) => board[a] && board[a] === board[b] && board[a] === board[c]);
+  }
+
+  function update() {
+    document.querySelectorAll('.cell').forEach((cell, i) => {
+      cell.textContent = board[i] || '';
+      cell.className = 'cell' + (board[i] === 'X' ? ' x' : board[i] === 'O' ? ' o' : '');
+      cell.disabled = !!board[i] || over;
+    });
+  }
+
+  function reset() {
+    board = Array(9).fill(null);
+    current = 'X';
+    over = false;
+    document.getElementById('status').textContent = 'Ход игрока X';
+    init();
+  }
+
+  init();
+</script>
+</body>
+</html>
