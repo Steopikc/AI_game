@@ -1,2281 +1,964 @@
-```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-
-<meta name="viewport"
-content="width=device-width,
-initial-scale=1.0,
-maximum-scale=1.0,
-user-scalable=no">
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>3D Бильярд</title>
-
 <style>
-
 *{
     margin:0;
     padding:0;
     box-sizing:border-box;
     user-select:none;
     -webkit-user-select:none;
+    -webkit-tap-highlight-color:transparent;
+    touch-action:none;
 }
-
-body{
+html, body{
+    width:100%;
+    height:100%;
     overflow:hidden;
     background:#061018;
-    font-family:Arial,sans-serif;
+    font-family:system-ui, -apple-system, Arial, sans-serif;
     color:white;
+    position:fixed;
 }
-
 #game{
     position:fixed;
     inset:0;
+    width:100%;
+    height:100%;
 }
-
 canvas{
     display:block;
+    width:100% !important;
+    height:100% !important;
+    touch-action:none;
 }
-
 #ui{
     position:fixed;
-    top:15px;
-    left:50%;
-    transform:translateX(-50%);
-    width:min(900px,94vw);
-
+    top:max(10px, env(safe-area-inset-top));
+    left:0;
+    right:0;
+    width:100%;
+    padding:0 10px;
     display:flex;
     justify-content:space-between;
-    align-items:center;
-
-    gap:10px;
-
+    align-items:flex-start;
+    gap:8px;
     z-index:10;
     pointer-events:none;
 }
-
 .panel{
-    background:rgba(5,10,16,.82);
-
-    border:1px solid rgba(255,255,255,.15);
-
+    background:rgba(5,10,16,.88);
+    border:1px solid rgba(255,255,255,.18);
     border-radius:14px;
-
-    padding:10px 16px;
-
-    backdrop-filter:blur(8px);
-
-    box-shadow:
-        0 8px 30px rgba(0,0,0,.3);
+    padding:8px 12px;
+    backdrop-filter:blur(10px);
+    box-shadow:0 8px 30px rgba(0,0,0,.35);
 }
-
 #turn{
-    font-size:18px;
+    font-size:clamp(13px, 3.2vw, 17px);
     font-weight:bold;
+    white-space:nowrap;
 }
-
 #scores{
     display:flex;
-    gap:14px;
-    font-size:14px;
+    gap:8px;
+    font-size:clamp(11px, 2.6vw, 13px);
+    flex-wrap:wrap;
+    justify-content:flex-end;
+    max-width:55vw;
 }
-
 .score.active{
     color:#55ff78;
     font-weight:bold;
 }
-
 #powerBox{
     position:fixed;
-
-    bottom:27px;
+    bottom:max(24px, env(safe-area-inset-bottom) + 10px);
     left:50%;
-
     transform:translateX(-50%);
-
-    width:min(430px,82vw);
-
+    width:min(400px, 90vw);
     z-index:20;
-
     text-align:center;
+    pointer-events:auto;
 }
-
 #powerLabel{
-    margin-bottom:7px;
-    font-size:14px;
+    margin-bottom:6px;
+    font-size:clamp(12px, 3vw, 14px);
+    text-shadow:0 1px 3px #000;
 }
-
 #power{
     width:100%;
-    height:14px;
-
+    height:20px;
     appearance:none;
-
+    -webkit-appearance:none;
     border-radius:20px;
-
-    background:#222;
-
+    background:#1a1a1a;
     overflow:hidden;
-
-    border:1px solid rgba(255,255,255,.2);
+    border:1px solid rgba(255,255,255,.25);
+    outline:none;
 }
-
 #power::-webkit-slider-thumb{
     appearance:none;
-
-    width:0;
-    height:0;
-
-    box-shadow:
-        -500px 0 0 500px #35d66b;
-}
-
-#power::-moz-range-progress{
+    -webkit-appearance:none;
+    width:30px;
+    height:30px;
+    border-radius:50%;
     background:#35d66b;
+    border:3px solid #fff;
+    box-shadow:0 2px 8px rgba(0,0,0,.5);
+    cursor:pointer;
+    margin-top:-5px;
 }
-
+#power::-moz-range-thumb{
+    width:30px;
+    height:30px;
+    border-radius:50%;
+    background:#35d66b;
+    border:3px solid #fff;
+    box-shadow:0 2px 8px rgba(0,0,0,.5);
+    cursor:pointer;
+}
+#power::-webkit-slider-runnable-track{
+    height:20px;
+    border-radius:20px;
+    background:linear-gradient(to right, #35d66b 0%, #35d66b var(--power-pct, 50%), #222 var(--power-pct, 50%));
+}
 #hint{
     position:fixed;
-
-    bottom:7px;
+    bottom:max(5px, env(safe-area-inset-bottom));
     left:50%;
-
     transform:translateX(-50%);
-
-    color:rgba(255,255,255,.65);
-
-    font-size:12px;
-
+    color:rgba(255,255,255,.7);
+    font-size:clamp(11px, 2.5vw, 13px);
     z-index:20;
-
     white-space:nowrap;
+    text-shadow:0 1px 2px #000;
+    pointer-events:none;
 }
-
 #menu{
     position:fixed;
-
     inset:0;
-
     z-index:100;
-
     display:flex;
-
     align-items:center;
     justify-content:center;
-
-    background:
-        radial-gradient(
-            circle at center,
-            #163d45 0%,
-            #07151c 45%,
-            #02070b 100%
-        );
+    background:radial-gradient(circle at center, #163d45 0%, #07151c 45%, #02070b 100%);
+    padding:16px;
 }
-
 .menuBox{
-    width:min(440px,90vw);
-
-    background:rgba(8,16,23,.95);
-
+    width:min(440px, 94vw);
+    background:rgba(8,16,23,.96);
     border:1px solid rgba(255,255,255,.15);
-
     border-radius:22px;
-
-    padding:30px;
-
+    padding:clamp(20px, 5vw, 30px);
     text-align:center;
-
-    box-shadow:
-        0 20px 80px rgba(0,0,0,.55);
+    box-shadow:0 20px 80px rgba(0,0,0,.55);
 }
-
 h1{
-    font-size:38px;
-    margin-bottom:8px;
+    font-size:clamp(28px, 8vw, 38px);
+    margin-bottom:6px;
 }
-
 .subtitle{
     color:#9caab4;
-    margin-bottom:25px;
+    margin-bottom:22px;
+    font-size:clamp(13px, 3.5vw, 16px);
 }
-
 .players{
     display:grid;
-
-    grid-template-columns:
-        repeat(3,1fr);
-
+    grid-template-columns:repeat(3,1fr);
     gap:8px;
-
-    margin-bottom:20px;
+    margin-bottom:18px;
 }
-
 .players button,
 .start,
 .restart{
     border:0;
-
     border-radius:12px;
-
-    padding:13px;
-
+    padding:14px 10px;
     background:#182630;
-
     color:white;
-
     cursor:pointer;
-
-    font-size:16px;
+    font-size:clamp(14px, 3.8vw, 16px);
+    min-height:48px;
+    touch-action:manipulation;
 }
-
 .players button.selected{
     background:#168f48;
 }
-
 .start{
     width:100%;
-
     background:#28bd5c;
-
     color:#061008;
-
     font-weight:bold;
-
-    font-size:18px;
+    font-size:clamp(16px, 4.5vw, 18px);
+    min-height:52px;
 }
-
 #message{
     position:fixed;
-
     left:50%;
     top:50%;
-
-    transform:
-        translate(-50%,-50%);
-
+    transform:translate(-50%,-50%);
     z-index:30;
-
-    background:rgba(0,0,0,.82);
-
-    padding:18px 30px;
-
+    background:rgba(0,0,0,.85);
+    padding:16px 28px;
     border-radius:16px;
-
-    font-size:25px;
-
+    font-size:clamp(18px, 5vw, 25px);
     font-weight:bold;
-
     display:none;
-
     text-align:center;
+    max-width:90vw;
+    pointer-events:none;
 }
-
 #restart{
     position:fixed;
-
-    right:15px;
-    top:15px;
-
-    z-index:20;
-
+    right:max(10px, env(safe-area-inset-right));
+    top:max(10px, env(safe-area-inset-top));
+    z-index:25;
     display:none;
-
-    background:
-        rgba(10,15,20,.85);
+    background:rgba(10,15,20,.92);
+    border:1px solid rgba(255,255,255,.2);
+    color:#fff;
+    border-radius:12px;
+    padding:9px 12px;
+    font-size:13px;
+    min-height:42px;
+    cursor:pointer;
+    touch-action:manipulation;
 }
-
+/* Mobile / touch larger controls */
+@media (max-width: 700px), (pointer: coarse) {
+    #power{
+        height:24px;
+    }
+    #power::-webkit-slider-thumb{
+        width:36px;
+        height:36px;
+        margin-top:-6px;
+    }
+    #power::-moz-range-thumb{
+        width:36px;
+        height:36px;
+    }
+    .panel{
+        padding:6px 10px;
+    }
+    #ui{
+        top:max(8px, env(safe-area-inset-top));
+        padding:0 8px;
+    }
+    #scores{
+        max-width:50vw;
+        gap:6px;
+    }
+    #powerBox{
+        bottom:max(30px, env(safe-area-inset-bottom) + 14px);
+        width:min(360px, 94vw);
+    }
+    #restart{
+        top:auto;
+        bottom:max(70px, env(safe-area-inset-bottom) + 55px);
+        right:max(10px, env(safe-area-inset-right));
+        font-size:12px;
+        padding:8px 10px;
+    }
+}
+/* Landscape mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+    #ui{
+        top:4px;
+    }
+    #powerBox{
+        bottom:14px;
+        width:min(300px, 65vw);
+    }
+    #hint{
+        display:none;
+    }
+    .panel{
+        padding:4px 8px;
+    }
+    #restart{
+        bottom:auto;
+        top:max(6px, env(safe-area-inset-top));
+    }
+}
 </style>
 </head>
-
 <body>
-
 <div id="game"></div>
-
-
 <div id="menu">
-
     <div class="menuBox">
-
         <h1>🎱 БИЛЬЯРД</h1>
-
         <div class="subtitle">
-            3D бильярд для нескольких игроков
+            3D бильярд • ПК и мобильные
         </div>
-
         <div class="players">
-
-            <button
-                data-p="2"
-                class="selected">
-                2 игрока
-            </button>
-
-            <button data-p="3">
-                3 игрока
-            </button>
-
-            <button data-p="4">
-                4 игрока
-            </button>
-
+            <button data-p="2" class="selected">2 игрока</button>
+            <button data-p="3">3 игрока</button>
+            <button data-p="4">4 игрока</button>
         </div>
-
-        <button
-            class="start"
-            id="start">
-
-            НАЧАТЬ ИГРУ
-
-        </button>
-
+        <button class="start" id="start">НАЧАТЬ ИГРУ</button>
     </div>
-
 </div>
-
-
 <div id="ui">
-
-    <div class="panel" id="turn">
-        Ход: Игрок 1
-    </div>
-
+    <div class="panel" id="turn">Ход: Игрок 1</div>
     <div class="panel" id="scores">
-
-        <div
-            class="score active"
-            id="s0">
-            Игрок 1: 0
-        </div>
-
-        <div
-            class="score"
-            id="s1">
-            Игрок 2: 0
-        </div>
-
-        <div
-            class="score"
-            id="s2"
-            style="display:none">
-            Игрок 3: 0
-        </div>
-
-        <div
-            class="score"
-            id="s3"
-            style="display:none">
-            Игрок 4: 0
-        </div>
-
+        <div class="score active" id="s0">Игрок 1: 0</div>
+        <div class="score" id="s1">Игрок 2: 0</div>
+        <div class="score" id="s2" style="display:none">Игрок 3: 0</div>
+        <div class="score" id="s3" style="display:none">Игрок 4: 0</div>
     </div>
-
 </div>
-
-
 <div id="powerBox">
-
-    <div id="powerLabel">
-        Сила удара: 50%
-    </div>
-
-    <input
-        id="power"
-        type="range"
-        min="5"
-        max="100"
-        value="50">
-
+    <div id="powerLabel">Сила удара: 50%</div>
+    <input id="power" type="range" min="5" max="100" value="50">
 </div>
-
-
-<div id="hint">
-    Наводи мышью / пальцем • Клик — удар
-</div>
-
-
+<div id="hint">Наводи • Клик / Тап — удар</div>
 <div id="message"></div>
-
-
-<button
-    id="restart"
-    class="restart">
-
-    ↻ Новая игра
-
-</button>
-
-
+<button id="restart" class="restart">↻ Новая игра</button>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-
 <script>
-
 /* =========================================================
-   НАСТРОЙКИ
+   НАСТРОЙКИ + АДАПТАЦИЯ ПОД ПК / МОБИЛУ
 ========================================================= */
-
-
-/*
-    ГЛАВНОЕ:
-
-    Чем меньше число,
-    тем медленнее чувствительность.
-
-    Было примерно 1.0.
-
-    Теперь 0.04.
-*/
-
-const AIM_SENSITIVITY = 0.04;
-
+const isTouchDevice = (() => {
+    const ua = navigator.userAgent || '';
+    return ('ontouchstart' in window) ||
+           (navigator.maxTouchPoints > 0) ||
+           /Android|iPhone|iPad|iPod|Mobile|Tablet|Touch/i.test(ua) ||
+           (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+})();
 
 /*
-    Плавность прицела.
-
-    Чем меньше —
-    тем плавнее и медленнее
-    реагирует направление.
+    Чувствительность прицела.
+    На ПК — точнее.
+    На таче — чуть медленнее и плавнее.
 */
-
-const AIM_SMOOTH = 0.05;
-
-
-/*
-    Скорость поворота камеры.
-*/
-
-const CAMERA_SENSITIVITY = 0.02;
-
+const AIM_SENSITIVITY = isTouchDevice ? 0.032 : 0.045;
+const AIM_SMOOTH = isTouchDevice ? 0.07 : 0.05;
+const CAMERA_SENSITIVITY = isTouchDevice ? 0.04 : 0.022;
 
 const TABLE_W = 16;
 const TABLE_H = 8;
-
-const BALL_R = .32;
-
-
-/*
-    Насколько далеко
-    камера находится за шаром.
-*/
-
+const BALL_R = 0.32;
 const CAMERA_DISTANCE = 5.2;
-
 const CAMERA_HEIGHT = 3.7;
-
-
-/*
-    Длина кия.
-*/
-
 const CUE_LENGTH = 7;
-
-
-/*
-    Расстояние центра кия
-    от белого шара.
-*/
-
 const CUE_DISTANCE = 3.7;
 
-
 const pockets = [
-
-    [-TABLE_W/2,-TABLE_H/2],
-
-    [0,-TABLE_H/2],
-
-    [TABLE_W/2,-TABLE_H/2],
-
-    [-TABLE_W/2,TABLE_H/2],
-
-    [0,TABLE_H/2],
-
-    [TABLE_W/2,TABLE_H/2]
-
+    [-TABLE_W/2, -TABLE_H/2],
+    [0, -TABLE_H/2],
+    [TABLE_W/2, -TABLE_H/2],
+    [-TABLE_W/2, TABLE_H/2],
+    [0, TABLE_H/2],
+    [TABLE_W/2, TABLE_H/2]
 ];
-
 
 /* =========================================================
    ПЕРЕМЕННЫЕ
 ========================================================= */
-
-let scene;
-let camera;
-let renderer;
-
+let scene, camera, renderer;
 let balls = [];
-
 let cueBall;
-
 let cueStick;
-
 let aimLine;
-
 let currentPlayer = 0;
-
 let playerCount = 2;
-
-let scores = [0,0,0,0];
-
-let mouse = new THREE.Vector2();
-
-let raycaster =
-    new THREE.Raycaster();
-
-let clock =
-    new THREE.Clock();
-
+let scores = [0, 0, 0, 0];
+let mouse = new THREE.Vector2(0, 0);
+let raycaster = new THREE.Raycaster();
+let clock = new THREE.Clock();
 let previousMoving = false;
-
-
-/*
-    Реальное направление.
-*/
-
 let aimAngle = 0;
-
-
-/*
-    Целевое направление.
-*/
-
 let targetAimAngle = 0;
-
-
-/*
-    Точка, куда смотрит камера.
-*/
-
-let cameraLook =
-    new THREE.Vector3();
-
+let cameraLook = new THREE.Vector3();
+let isPointerDown = false;
+let lastPointerType = 'mouse';
+let pointerStartTime = 0;
+let pointerStartX = 0;
+let pointerStartY = 0;
+let hasMovedSignificantly = false;
 
 /* =========================================================
    МЕНЮ
 ========================================================= */
-
-document
-.querySelectorAll(".players button")
-.forEach(button => {
-
+document.querySelectorAll(".players button").forEach(button => {
     button.onclick = () => {
-
-        document
-        .querySelectorAll(".players button")
-        .forEach(b =>
-            b.classList.remove("selected")
-        );
-
+        document.querySelectorAll(".players button").forEach(b => b.classList.remove("selected"));
         button.classList.add("selected");
-
-        playerCount =
-            Number(button.dataset.p);
+        playerCount = Number(button.dataset.p);
     };
-
 });
 
-
-document.getElementById("start")
-.onclick = () => {
-
-    document.getElementById("menu")
-    .style.display = "none";
-
-    document.getElementById("restart")
-    .style.display = "block";
-
+document.getElementById("start").onclick = () => {
+    document.getElementById("menu").style.display = "none";
+    document.getElementById("restart").style.display = "block";
+    // Подсказка зависит от устройства
+    const hintEl = document.getElementById("hint");
+    if (isTouchDevice || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)) {
+        hintEl.textContent = "Двигай пальцем • Тап — удар";
+    } else {
+        hintEl.textContent = "Наводи мышью • Клик — удар";
+    }
     init();
 };
 
-
-document.getElementById("restart")
-.onclick = () => {
-
+document.getElementById("restart").onclick = () => {
     location.reload();
-
 };
-
 
 /* =========================================================
    СИЛА УДАРА
 ========================================================= */
-
-const power =
-    document.getElementById("power");
-
-
-power.oninput = () => {
-
-    document.getElementById("powerLabel")
-    .textContent =
-        "Сила удара: " +
-        power.value +
-        "%";
-
-};
-
+const power = document.getElementById("power");
+function updatePowerVisual() {
+    const pct = power.value + "%";
+    document.getElementById("powerLabel").textContent = "Сила удара: " + pct;
+    power.style.setProperty('--power-pct', pct);
+}
+power.oninput = updatePowerVisual;
+power.onchange = updatePowerVisual;
+updatePowerVisual();
 
 /* =========================================================
    INIT
 ========================================================= */
+function init() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x061018);
 
-function init(){
+    camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 1000);
 
-    scene =
-        new THREE.Scene();
+    renderer = new THREE.WebGLRenderer({ antialias: !isTouchDevice, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, isTouchDevice ? 1.5 : 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.shadowMap.enabled = !isTouchDevice;
+    if (renderer.shadowMap.enabled) {
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    }
+    document.getElementById("game").appendChild(renderer.domElement);
 
-
-    scene.background =
-        new THREE.Color(0x061018);
-
-
-    camera =
-        new THREE.PerspectiveCamera(
-            55,
-            innerWidth/innerHeight,
-            .1,
-            1000
-        );
-
-
-    renderer =
-        new THREE.WebGLRenderer({
-            antialias:true
-        });
-
-
-    renderer.setPixelRatio(
-        Math.min(devicePixelRatio,2)
-    );
-
-
-    renderer.setSize(
-        innerWidth,
-        innerHeight
-    );
-
-
-    renderer.shadowMap.enabled =
-        true;
-
-
-    renderer.shadowMap.type =
-        THREE.PCFSoftShadowMap;
-
-
-    document
-    .getElementById("game")
-    .appendChild(renderer.domElement);
-
-
-    /* Свет */
-
-    scene.add(
-        new THREE.AmbientLight(
-            0xffffff,
-            1.35
-        )
-    );
-
-
-    const light =
-        new THREE.PointLight(
-            0xffffff,
-            1200,
-            40
-        );
-
-
-    light.position.set(
-        0,9,0
-    );
-
-
-    light.castShadow =
-        true;
-
-
+    // Свет
+    scene.add(new THREE.AmbientLight(0xffffff, 1.35));
+    const light = new THREE.PointLight(0xffffff, 1200, 40);
+    light.position.set(0, 9, 0);
+    light.castShadow = true;
     scene.add(light);
-
-
-    const light2 =
-        new THREE.PointLight(
-            0x77cfff,
-            450,
-            30
-        );
-
-
-    light2.position.set(
-        -8,6,4
-    );
-
-
+    const light2 = new THREE.PointLight(0x77cfff, 450, 30);
+    light2.position.set(-8, 6, 4);
     scene.add(light2);
 
-
     createTable();
-
     createBalls();
-
     createCue();
-
     createAimLine();
 
+    window.addEventListener("resize", resize);
 
-    window.addEventListener(
-        "resize",
-        resize
-    );
-
-
-    renderer.domElement
-    .addEventListener(
-        "pointermove",
-        pointerMove
-    );
-
-
-    renderer.domElement
-    .addEventListener(
-        "pointerdown",
-        pointerDown
-    );
-
+    const canvas = renderer.domElement;
+    canvas.addEventListener("pointermove", pointerMove, { passive: false });
+    canvas.addEventListener("pointerdown", pointerDown, { passive: false });
+    canvas.addEventListener("pointerup", pointerUp, { passive: false });
+    canvas.addEventListener("pointercancel", pointerUp, { passive: false });
+    // Предотвращаем контекстное меню и жесты
+    canvas.addEventListener("contextmenu", e => e.preventDefault());
+    document.addEventListener("gesturestart", e => e.preventDefault());
 
     updateCamera(true);
-
     updateCue();
-
     updateAimLine();
-
-
     animate();
-}
 
+    // На мобиле пробуем fullscreen для удобства
+    if (isTouchDevice && document.documentElement.requestFullscreen) {
+        setTimeout(() => {
+            try { document.documentElement.requestFullscreen().catch(() => {}); } catch(e) {}
+        }, 300);
+    }
+}
 
 /* =========================================================
    СТОЛ
 ========================================================= */
-
-function createTable(){
-
-    const group =
-        new THREE.Group();
-
+function createTable() {
+    const group = new THREE.Group();
     scene.add(group);
 
-
-    const base =
-        new THREE.Mesh(
-
-            new THREE.BoxGeometry(
-                TABLE_W+1.2,
-                .7,
-                TABLE_H+1.2
-            ),
-
-            new THREE.MeshStandardMaterial({
-                color:0x25160e,
-                roughness:.7
-            })
-
-        );
-
-
-    base.position.y = -.65;
-
+    const base = new THREE.Mesh(
+        new THREE.BoxGeometry(TABLE_W + 1.2, 0.7, TABLE_H + 1.2),
+        new THREE.MeshStandardMaterial({ color: 0x25160e, roughness: 0.7 })
+    );
+    base.position.y = -0.65;
     base.receiveShadow = true;
-
     group.add(base);
 
-
-    const field =
-        new THREE.Mesh(
-
-            new THREE.BoxGeometry(
-                TABLE_W,
-                .18,
-                TABLE_H
-            ),
-
-            new THREE.MeshStandardMaterial({
-                color:0x075d33,
-                roughness:.9
-            })
-
-        );
-
-
-    field.position.y = -.25;
-
+    const field = new THREE.Mesh(
+        new THREE.BoxGeometry(TABLE_W, 0.18, TABLE_H),
+        new THREE.MeshStandardMaterial({ color: 0x075d33, roughness: 0.9 })
+    );
+    field.position.y = -0.25;
     field.receiveShadow = true;
-
     group.add(field);
 
-
-    const railMaterial =
-        new THREE.MeshStandardMaterial({
-            color:0x0d3825,
-            roughness:.65
-        });
-
-
+    const railMaterial = new THREE.MeshStandardMaterial({ color: 0x0d3825, roughness: 0.65 });
     const rails = [
-
-        [0,.15,-TABLE_H/2-.35,
-         TABLE_W+.7,.65,.7],
-
-        [0,.15,TABLE_H/2+.35,
-         TABLE_W+.7,.65,.7],
-
-        [-TABLE_W/2-.35,.15,0,
-         .7,.65,TABLE_H],
-
-        [TABLE_W/2+.35,.15,0,
-         .7,.65,TABLE_H]
-
+        [0, 0.15, -TABLE_H/2 - 0.35, TABLE_W + 0.7, 0.65, 0.7],
+        [0, 0.15, TABLE_H/2 + 0.35, TABLE_W + 0.7, 0.65, 0.7],
+        [-TABLE_W/2 - 0.35, 0.15, 0, 0.7, 0.65, TABLE_H],
+        [TABLE_W/2 + 0.35, 0.15, 0, 0.7, 0.65, TABLE_H]
     ];
-
-
     rails.forEach(r => {
-
-        const rail =
-            new THREE.Mesh(
-
-                new THREE.BoxGeometry(
-                    r[3],
-                    r[4],
-                    r[5]
-                ),
-
-                railMaterial
-
-            );
-
-
-        rail.position.set(
-            r[0],
-            r[1]-.25,
-            r[2]
-        );
-
-
-        rail.castShadow =
-            true;
-
-        rail.receiveShadow =
-            true;
-
-
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(r[3], r[4], r[5]), railMaterial);
+        rail.position.set(r[0], r[1] - 0.25, r[2]);
+        rail.castShadow = true;
+        rail.receiveShadow = true;
         group.add(rail);
-
     });
 
-
-    const pocketMaterial =
-        new THREE.MeshStandardMaterial({
-            color:0x010101,
-            roughness:1
-        });
-
-
+    const pocketMaterial = new THREE.MeshStandardMaterial({ color: 0x010101, roughness: 1 });
     pockets.forEach(p => {
-
-        const pocket =
-            new THREE.Mesh(
-
-                new THREE.CylinderGeometry(
-                    .55,
-                    .55,
-                    .15,
-                    32
-                ),
-
-                pocketMaterial
-
-            );
-
-
-        pocket.position.set(
-            p[0],
-            -.15,
-            p[1]
+        const pocket = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.55, 0.55, 0.15, 32),
+            pocketMaterial
         );
-
-
+        pocket.position.set(p[0], -0.15, p[1]);
         group.add(pocket);
-
     });
 
-
-    /* ножки */
-
-    const legMaterial =
-        new THREE.MeshStandardMaterial({
-            color:0x170d08
-        });
-
-
-    for(
-        const x of [-6.5,6.5]
-    ){
-
-        for(
-            const z of [-3,3]
-        ){
-
-            const leg =
-                new THREE.Mesh(
-
-                    new THREE.BoxGeometry(
-                        .8,4,.8
-                    ),
-
-                    legMaterial
-
-                );
-
-
-            leg.position.set(
-                x,
-                -2,
-                z
-            );
-
-
+    const legMaterial = new THREE.MeshStandardMaterial({ color: 0x170d08 });
+    for (const x of [-6.5, 6.5]) {
+        for (const z of [-3, 3]) {
+            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.8, 4, 0.8), legMaterial);
+            leg.position.set(x, -2, z);
             group.add(leg);
-
         }
-
     }
-
 }
-
 
 /* =========================================================
    ШАР
 ========================================================= */
-
-function createBall(
-    color,
-    x,
-    z,
-    number
-){
-
-    const ball =
-        new THREE.Mesh(
-
-            new THREE.SphereGeometry(
-                BALL_R,
-                32,
-                20
-            ),
-
-            new THREE.MeshStandardMaterial({
-                color,
-                roughness:.23,
-                metalness:.05
-            })
-
-        );
-
-
-    ball.position.set(
-        x,.22,z
+function createBall(color, x, z, number) {
+    const ball = new THREE.Mesh(
+        new THREE.SphereGeometry(BALL_R, isTouchDevice ? 20 : 32, isTouchDevice ? 14 : 20),
+        new THREE.MeshStandardMaterial({
+            color,
+            roughness: 0.23,
+            metalness: 0.05
+        })
     );
-
-
+    ball.position.set(x, 0.22, z);
     ball.castShadow = true;
-
     ball.receiveShadow = true;
-
-
-    ball.userData = {
-
-        vx:0,
-        vz:0,
-
-        number,
-
-        active:true
-
-    };
-
-
+    ball.userData = { vx: 0, vz: 0, number, active: true };
     scene.add(ball);
-
     balls.push(ball);
-
-
     return ball;
 }
 
-
-/* =========================================================
-   ШАРЫ
-========================================================= */
-
-function createBalls(){
-
+function createBalls() {
     balls = [];
-
-
-    cueBall =
-        createBall(
-            0xffffff,
-            -4.5,
-            0,
-            0
-        );
-
-
+    cueBall = createBall(0xffffff, -4.5, 0, 0);
     const colors = [
-
-        0xffff00,
-        0x0055ff,
-        0xff2222,
-        0x7b00ff,
-        0xff7000,
-        0x0099ff,
-        0xff2090,
-        0x111111,
-        0xffff00,
-        0xff1111,
-        0x2222ff,
-        0xff8800,
-        0x9900ff,
-        0x00cc66,
-        0xff3333
-
+        0xffff00, 0x0055ff, 0xff2222, 0x7b00ff, 0xff7000,
+        0x0099ff, 0xff2090, 0x111111, 0xffff00, 0xff1111,
+        0x2222ff, 0xff8800, 0x9900ff, 0x00cc66, 0xff3333
     ];
-
-
     const startX = 3;
-
     let number = 1;
-
-
-    for(
-        let row=0;
-        row<5;
-        row++
-    ){
-
-        for(
-            let col=0;
-            col<=row;
-            col++
-        ){
-
-            const x =
-                startX +
-                row*BALL_R*1.75;
-
-
-            const z =
-                (col-row/2) *
-                BALL_R*2.05;
-
-
-            createBall(
-                colors[number-1],
-                x,
-                z,
-                number
-            );
-
-
+    for (let row = 0; row < 5; row++) {
+        for (let col = 0; col <= row; col++) {
+            const x = startX + row * BALL_R * 1.75;
+            const z = (col - row / 2) * BALL_R * 2.05;
+            createBall(colors[number - 1], x, z, number);
             number++;
-
         }
-
     }
-
 }
 
-
 /* =========================================================
-   КИЙ — ПОЛНОСТЬЮ ПЕРЕДЕЛАН
+   КИЙ
 ========================================================= */
-
-function createCue(){
-
-    /*
-        CylinderGeometry по умолчанию
-        направлен вдоль оси Y.
-
-        Мы НЕ будем вручную задавать
-        rotation.x / rotation.y.
-
-        Вместо этого будем использовать
-        quaternion.
-
-        Это гарантирует,
-        что кий всегда смотрит
-        точно в нужную сторону.
-    */
-
-    const geometry =
-        new THREE.CylinderGeometry(
-            .055,
-            .11,
-            CUE_LENGTH,
-            20
-        );
-
-
-    const material =
-        new THREE.MeshStandardMaterial({
-
-            color:0xd09a61,
-
-            roughness:.38,
-
-            metalness:.03
-
-        });
-
-
-    cueStick =
-        new THREE.Mesh(
-            geometry,
-            material
-        );
-
-
-    cueStick.castShadow =
-        true;
-
-
+function createCue() {
+    const geometry = new THREE.CylinderGeometry(0.055, 0.11, CUE_LENGTH, 16);
+    const material = new THREE.MeshStandardMaterial({
+        color: 0xd09a61,
+        roughness: 0.38,
+        metalness: 0.03
+    });
+    cueStick = new THREE.Mesh(geometry, material);
+    cueStick.castShadow = true;
     scene.add(cueStick);
 }
 
+function updateCue() {
+    if (!cueBall) return;
+    const direction = new THREE.Vector3(Math.sin(aimAngle), 0, Math.cos(aimAngle));
+    const cuePosition = cueBall.position.clone().sub(direction.clone().multiplyScalar(CUE_DISTANCE));
+    cuePosition.y = 0.55;
+    cueStick.position.copy(cuePosition);
 
-/* =========================================================
-   ПРАВИЛЬНОЕ ПОЛОЖЕНИЕ КИЯ
-========================================================= */
-
-function updateCue(){
-
-    if(!cueBall)
-        return;
-
-
-    /*
-        Направление удара:
-
-        X = sin
-        Z = cos
-    */
-
-    const direction =
-        new THREE.Vector3(
-            Math.sin(aimAngle),
-            0,
-            Math.cos(aimAngle)
-        );
-
-
-    /*
-        Центр кия находится
-        ПОЗАДИ белого шара.
-
-        То есть:
-
-        шар ----> направление удара
-
-        кий находится слева
-        от этой стрелки.
-    */
-
-    const cuePosition =
-        cueBall.position.clone()
-        .sub(
-            direction.clone()
-            .multiplyScalar(CUE_DISTANCE)
-        );
-
-
-    cuePosition.y =
-        .55;
-
-
-    cueStick.position.copy(
-        cuePosition
-    );
-
-
-    /*
-        Очень важный момент.
-
-        Ось цилиндра = Y.
-
-        Мы поворачиваем ось Y
-        в направлении удара.
-
-        Поэтому кий теперь
-        физически совпадает
-        с направлением шара.
-    */
-
-    const up =
-        new THREE.Vector3(
-            0,1,0
-        );
-
-
-    const quaternion =
-        new THREE.Quaternion();
-
-
-    quaternion.setFromUnitVectors(
-        up,
-        direction
-    );
-
-
-    cueStick.quaternion.copy(
-        quaternion
-    );
-
+    const up = new THREE.Vector3(0, 1, 0);
+    const quaternion = new THREE.Quaternion();
+    quaternion.setFromUnitVectors(up, direction);
+    cueStick.quaternion.copy(quaternion);
 }
-
 
 /* =========================================================
    ЛИНИЯ ПРИЦЕЛА
 ========================================================= */
-
-function createAimLine(){
-
-    const geometry =
-        new THREE.BufferGeometry();
-
-
-    geometry.setAttribute(
-        "position",
-
-        new THREE.BufferAttribute(
-            new Float32Array(6),
-            3
-        )
+function createAimLine() {
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(6), 3));
+    aimLine = new THREE.Line(
+        geometry,
+        new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.45 })
     );
-
-
-    aimLine =
-        new THREE.Line(
-
-            geometry,
-
-            new THREE.LineBasicMaterial({
-                color:0xffffff,
-                transparent:true,
-                opacity:.4
-            })
-
-        );
-
-
     scene.add(aimLine);
 }
 
-
-function updateAimLine(){
-
-    if(!cueBall)
-        return;
-
-
-    const direction =
-        new THREE.Vector3(
-            Math.sin(aimAngle),
-            0,
-            Math.cos(aimAngle)
-        );
-
-
-    const start =
-        cueBall.position.clone();
-
-
-    start.y =
-        .25;
-
-
-    const end =
-        start.clone()
-        .add(
-            direction
-            .multiplyScalar(8)
-        );
-
-
-    const position =
-        aimLine.geometry
-        .attributes.position;
-
-
-    position.setXYZ(
-        0,
-        start.x,
-        start.y,
-        start.z
-    );
-
-
-    position.setXYZ(
-        1,
-        end.x,
-        end.y,
-        end.z
-    );
-
-
-    position.needsUpdate =
-        true;
+function updateAimLine() {
+    if (!cueBall) return;
+    const direction = new THREE.Vector3(Math.sin(aimAngle), 0, Math.cos(aimAngle));
+    const start = cueBall.position.clone();
+    start.y = 0.25;
+    const end = start.clone().add(direction.multiplyScalar(8));
+    const position = aimLine.geometry.attributes.position;
+    position.setXYZ(0, start.x, start.y, start.z);
+    position.setXYZ(1, end.x, end.y, end.z);
+    position.needsUpdate = true;
 }
-
 
 /* =========================================================
-   ПОЛУЧЕНИЕ ТОЧКИ МЫШИ
+   ПОЛУЧЕНИЕ ТОЧКИ МЫШИ / ПАЛЬЦА
 ========================================================= */
-
-function getMouseWorld(){
-
-    raycaster.setFromCamera(
-        mouse,
-        camera
-    );
-
-
-    const plane =
-        new THREE.Plane(
-            new THREE.Vector3(0,1,0),
-            -.1
-        );
-
-
-    const point =
-        new THREE.Vector3();
-
-
-    raycaster.ray
-    .intersectPlane(
-        plane,
-        point
-    );
-
-
-    return point;
+function getMouseWorld() {
+    raycaster.setFromCamera(mouse, camera);
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.1);
+    const point = new THREE.Vector3();
+    if (raycaster.ray.intersectPlane(plane, point)) {
+        return point;
+    }
+    return null;
 }
-
 
 /* =========================================================
    ПРИЦЕЛИВАНИЕ
 ========================================================= */
+function updateAim() {
+    if (!cueBall || isMoving()) return;
+    const target = getMouseWorld();
+    if (!target) return;
 
-function updateAim(){
+    const dx = target.x - cueBall.position.x;
+    const dz = target.z - cueBall.position.z;
+    targetAimAngle = Math.atan2(dx, dz);
 
-    if(!cueBall)
-        return;
+    let difference = targetAimAngle - aimAngle;
+    while (difference > Math.PI) difference -= Math.PI * 2;
+    while (difference < -Math.PI) difference += Math.PI * 2;
 
-
-    const target =
-        getMouseWorld();
-
-
-    if(!target)
-        return;
-
-
-    const dx =
-        target.x -
-        cueBall.position.x;
-
-
-    const dz =
-        target.z -
-        cueBall.position.z;
-
-
-    /*
-        Целевое направление.
-    */
-
-    targetAimAngle =
-        Math.atan2(
-            dx,
-            dz
-        );
-
-
-    /*
-        Нормализуем разницу углов,
-        чтобы не было резкого
-        прыжка через 180°.
-    */
-
-    let difference =
-        targetAimAngle -
-        aimAngle;
-
-
-    while(
-        difference > Math.PI
-    )
-        difference -=
-            Math.PI*2;
-
-
-    while(
-        difference < -Math.PI
-    )
-        difference +=
-            Math.PI*2;
-
-
-    /*
-        ВОТ ЗДЕСЬ НИЗКАЯ СЕНСА.
-
-        AIM_SMOOTH = 0.05
-
-        Поэтому кий и камера
-        двигаются намного медленнее.
-    */
-
-    aimAngle +=
-        difference *
-        AIM_SMOOTH *
-        AIM_SENSITIVITY *
-        5;
-
+    // Плавное сглаживание + чувствительность в зависимости от устройства
+    aimAngle += difference * AIM_SMOOTH * AIM_SENSITIVITY * 5;
 
     updateCue();
-
     updateAimLine();
-
     updateCamera();
-
 }
-
 
 /* =========================================================
    КАМЕРА
 ========================================================= */
+function updateCamera(instant = false) {
+    if (!cueBall) return;
+    const direction = new THREE.Vector3(Math.sin(aimAngle), 0, Math.cos(aimAngle));
+    const powerValue = Number(power.value) / 100;
+    const distance = CAMERA_DISTANCE + powerValue * 1.2;
+    const wantedPosition = cueBall.position.clone();
+    wantedPosition.sub(direction.clone().multiplyScalar(distance));
+    wantedPosition.y = CAMERA_HEIGHT;
 
-function updateCamera(
-    instant=false
-){
-
-    if(!cueBall)
-        return;
-
-
-    const direction =
-        new THREE.Vector3(
-
-            Math.sin(aimAngle),
-            0,
-
-            Math.cos(aimAngle)
-
-        );
-
-
-    const powerValue =
-        Number(power.value)/100;
-
-
-    /*
-        Камера стоит
-        строго позади шара.
-    */
-
-    const distance =
-        CAMERA_DISTANCE +
-        powerValue*1.2;
-
-
-    const wantedPosition =
-        cueBall.position.clone();
-
-
-    wantedPosition.sub(
-        direction.clone()
-        .multiplyScalar(distance)
-    );
-
-
-    wantedPosition.y =
-        CAMERA_HEIGHT;
-
-
-    if(instant){
-
-        camera.position.copy(
-            wantedPosition
-        );
-
-    }else{
-
-        camera.position.lerp(
-            wantedPosition,
-            CAMERA_SENSITIVITY
-        );
-
+    if (instant) {
+        camera.position.copy(wantedPosition);
+    } else {
+        camera.position.lerp(wantedPosition, CAMERA_SENSITIVITY);
     }
 
-
-    /*
-        Камера смотрит
-        чуть дальше белого шара.
-    */
-
-    const wantedLook =
-        cueBall.position.clone();
-
-
-    wantedLook.add(
-        direction.clone()
-        .multiplyScalar(4.5)
-    );
-
-
-    wantedLook.y =
-        .15;
-
-
-    cameraLook.lerp(
-        wantedLook,
-        instant ? 1 : .08
-    );
-
-
-    camera.lookAt(
-        cameraLook
-    );
-
+    const wantedLook = cueBall.position.clone();
+    wantedLook.add(direction.clone().multiplyScalar(4.5));
+    wantedLook.y = 0.15;
+    cameraLook.lerp(wantedLook, instant ? 1 : 0.1);
+    camera.lookAt(cameraLook);
 }
 
-
 /* =========================================================
-   МЫШЬ
+   POINTER EVENTS (мышь + тач)
 ========================================================= */
+function pointerMove(e) {
+    e.preventDefault();
+    lastPointerType = e.pointerType || 'mouse';
+    const rect = renderer.domElement.getBoundingClientRect();
+    const rawX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    const rawY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
-function pointerMove(e){
+    // На таче сглаживание сильнее
+    const smooth = (lastPointerType === 'touch' || isTouchDevice) ? 0.2 : 0.12;
+    mouse.x += (rawX - mouse.x) * smooth;
+    mouse.y += (rawY - mouse.y) * smooth;
 
-    const rect =
-        renderer.domElement
-        .getBoundingClientRect();
+    if (isPointerDown) {
+        const dx = e.clientX - pointerStartX;
+        const dy = e.clientY - pointerStartY;
+        if (Math.hypot(dx, dy) > 12) hasMovedSignificantly = true;
+    }
 
-
-    const rawX =
-        ((e.clientX-rect.left) /
-        rect.width)*2-1;
-
-
-    const rawY =
-        -((e.clientY-rect.top) /
-        rect.height)*2+1;
-
-
-    /*
-        Дополнительное замедление
-        движения курсора.
-
-        Центр экрана сохраняется,
-        но направление меняется
-        гораздо медленнее.
-    */
-
-    mouse.x +=
-        (rawX-mouse.x) *
-        .12;
-
-
-    mouse.y +=
-        (rawY-mouse.y) *
-        .12;
-
-
-    if(!isMoving()){
-
+    if (!isMoving()) {
         updateAim();
-
     }
-
 }
 
+function pointerDown(e) {
+    e.preventDefault();
+    lastPointerType = e.pointerType || 'mouse';
+    isPointerDown = true;
+    pointerStartTime = performance.now();
+    pointerStartX = e.clientX;
+    pointerStartY = e.clientY;
+    hasMovedSignificantly = false;
 
-/* =========================================================
-   УДАР
-========================================================= */
-
-function pointerDown(){
-
-    if(isMoving())
-        return;
-
-
-    if(!cueBall)
-        return;
-
-
-    if(!cueBall.userData.active)
-        return;
-
-
-    const powerValue =
-        Number(power.value)/100;
-
-
-    const speed =
-        5 +
-        powerValue*18;
-
-
-    const direction =
-        new THREE.Vector3(
-
-            Math.sin(aimAngle),
-            0,
-            Math.cos(aimAngle)
-
-        );
-
-
-    cueBall.userData.vx =
-        direction.x*speed;
-
-
-    cueBall.userData.vz =
-        direction.z*speed;
-
-
-    cueStick.visible =
-        false;
-
-
-    aimLine.visible =
-        false;
-
+    // Сразу обновляем прицел при касании
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    if (!isMoving()) updateAim();
 }
 
+function pointerUp(e) {
+    if (!isPointerDown) return;
+    isPointerDown = false;
+
+    // Если это был короткий тап без сильного движения — удар
+    const duration = performance.now() - pointerStartTime;
+    if (!isMoving() && cueBall && cueBall.userData.active) {
+        if (!hasMovedSignificantly && duration < 450) {
+            shoot();
+        }
+    }
+}
+
+function shoot() {
+    if (isMoving()) return;
+    if (!cueBall || !cueBall.userData.active) return;
+
+    const powerValue = Number(power.value) / 100;
+    const speed = 5 + powerValue * 18;
+    const direction = new THREE.Vector3(Math.sin(aimAngle), 0, Math.cos(aimAngle));
+
+    cueBall.userData.vx = direction.x * speed;
+    cueBall.userData.vz = direction.z * speed;
+
+    cueStick.visible = false;
+    aimLine.visible = false;
+}
 
 /* =========================================================
    ФИЗИКА
 ========================================================= */
-
-function isMoving(){
-
-    return balls.some(
-        b =>
+function isMoving() {
+    return balls.some(b =>
         b.userData.active &&
-        (
-            Math.abs(b.userData.vx)>.03 ||
-            Math.abs(b.userData.vz)>.03
-        )
+        (Math.abs(b.userData.vx) > 0.03 || Math.abs(b.userData.vz) > 0.03)
     );
-
 }
 
-
-function updatePhysics(dt){
-
-    const friction =
-        Math.pow(.992,dt*60);
-
-
-    for(
-        const b of balls
-    ){
-
-        if(!b.userData.active)
-            continue;
-
-
-        b.position.x +=
-            b.userData.vx*dt;
-
-
-        b.position.z +=
-            b.userData.vz*dt;
-
-
-        b.userData.vx *=
-            friction;
-
-
-        b.userData.vz *=
-            friction;
-
-
-        if(
-            Math.abs(
-                b.userData.vx
-            ) < .015
-        )
-            b.userData.vx=0;
-
-
-        if(
-            Math.abs(
-                b.userData.vz
-            ) < .015
-        )
-            b.userData.vz=0;
-
-
+function updatePhysics(dt) {
+    const friction = Math.pow(0.992, dt * 60);
+    for (const b of balls) {
+        if (!b.userData.active) continue;
+        b.position.x += b.userData.vx * dt;
+        b.position.z += b.userData.vz * dt;
+        b.userData.vx *= friction;
+        b.userData.vz *= friction;
+        if (Math.abs(b.userData.vx) < 0.015) b.userData.vx = 0;
+        if (Math.abs(b.userData.vz) < 0.015) b.userData.vz = 0;
         checkWalls(b);
-
         checkPocket(b);
-
     }
 
-
-    /*
-        Столкновения шаров.
-    */
-
-    for(
-        let i=0;
-        i<balls.length;
-        i++
-    ){
-
-        const a =
-            balls[i];
-
-
-        if(!a.userData.active)
-            continue;
-
-
-        for(
-            let j=i+1;
-            j<balls.length;
-            j++
-        ){
-
-            const b =
-                balls[j];
-
-
-            if(!b.userData.active)
-                continue;
-
-
-            const dx =
-                b.position.x -
-                a.position.x;
-
-
-            const dz =
-                b.position.z -
-                a.position.z;
-
-
-            const distance =
-                Math.sqrt(
-                    dx*dx+
-                    dz*dz
-                );
-
-
-            const minDistance =
-                BALL_R*2;
-
-
-            if(
-                distance <
-                minDistance &&
-                distance>.0001
-            ){
-
-                const nx =
-                    dx/distance;
-
-
-                const nz =
-                    dz/distance;
-
-
-                const overlap =
-                    minDistance-distance;
-
-
-                a.position.x -=
-                    nx*overlap/2;
-
-
-                a.position.z -=
-                    nz*overlap/2;
-
-
-                b.position.x +=
-                    nx*overlap/2;
-
-
-                b.position.z +=
-                    nz*overlap/2;
-
-
-                const rvx =
-                    b.userData.vx -
-                    a.userData.vx;
-
-
-                const rvz =
-                    b.userData.vz -
-                    a.userData.vz;
-
-
-                const velocity =
-                    rvx*nx+
-                    rvz*nz;
-
-
-                if(velocity>0)
-                    continue;
-
-
-                const impulse =
-                    -velocity;
-
-
-                a.userData.vx -=
-                    impulse*nx;
-
-
-                a.userData.vz -=
-                    impulse*nz;
-
-
-                b.userData.vx +=
-                    impulse*nx;
-
-
-                b.userData.vz +=
-                    impulse*nz;
-
+    // Столкновения
+    for (let i = 0; i < balls.length; i++) {
+        const a = balls[i];
+        if (!a.userData.active) continue;
+        for (let j = i + 1; j < balls.length; j++) {
+            const b = balls[j];
+            if (!b.userData.active) continue;
+            const dx = b.position.x - a.position.x;
+            const dz = b.position.z - a.position.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+            const minDistance = BALL_R * 2;
+            if (distance < minDistance && distance > 0.0001) {
+                const nx = dx / distance;
+                const nz = dz / distance;
+                const overlap = minDistance - distance;
+                a.position.x -= nx * overlap / 2;
+                a.position.z -= nz * overlap / 2;
+                b.position.x += nx * overlap / 2;
+                b.position.z += nz * overlap / 2;
+                const rvx = b.userData.vx - a.userData.vx;
+                const rvz = b.userData.vz - a.userData.vz;
+                const velocity = rvx * nx + rvz * nz;
+                if (velocity > 0) continue;
+                const impulse = -velocity;
+                a.userData.vx -= impulse * nx;
+                a.userData.vz -= impulse * nz;
+                b.userData.vx += impulse * nx;
+                b.userData.vz += impulse * nz;
             }
-
         }
-
     }
-
 }
 
-
-/* =========================================================
-   СТЕНЫ
-========================================================= */
-
-function checkWalls(b){
-
-    const left =
-        -TABLE_W/2+BALL_R;
-
-
-    const right =
-        TABLE_W/2-BALL_R;
-
-
-    const top =
-        -TABLE_H/2+BALL_R;
-
-
-    const bottom =
-        TABLE_H/2-BALL_R;
-
-
-    if(b.position.x<left){
-
-        b.position.x=left;
-
-        b.userData.vx*=-.85;
-
+function checkWalls(b) {
+    const left = -TABLE_W / 2 + BALL_R;
+    const right = TABLE_W / 2 - BALL_R;
+    const top = -TABLE_H / 2 + BALL_R;
+    const bottom = TABLE_H / 2 - BALL_R;
+    if (b.position.x < left) {
+        b.position.x = left;
+        b.userData.vx *= -0.85;
     }
-
-
-    if(b.position.x>right){
-
-        b.position.x=right;
-
-        b.userData.vx*=-.85;
-
+    if (b.position.x > right) {
+        b.position.x = right;
+        b.userData.vx *= -0.85;
     }
-
-
-    if(b.position.z<top){
-
-        b.position.z=top;
-
-        b.userData.vz*=-.85;
-
+    if (b.position.z < top) {
+        b.position.z = top;
+        b.userData.vz *= -0.85;
     }
-
-
-    if(b.position.z>bottom){
-
-        b.position.z=bottom;
-
-        b.userData.vz*=-.85;
-
+    if (b.position.z > bottom) {
+        b.position.z = bottom;
+        b.userData.vz *= -0.85;
     }
-
 }
 
-
-/* =========================================================
-   ЛУНКИ
-========================================================= */
-
-function checkPocket(b){
-
-    for(
-        const p of pockets
-    ){
-
-        const dx =
-            b.position.x-p[0];
-
-
-        const dz =
-            b.position.z-p[1];
-
-
-        const distance =
-            Math.sqrt(
-                dx*dx+
-                dz*dz
-            );
-
-
-        if(distance<.55){
-
-            b.userData.vx=0;
-            b.userData.vz=0;
-
-
-            if(b===cueBall){
-
-                b.userData.active=false;
-
-                b.visible=false;
-
-
-                setTimeout(()=>{
-
-                    b.position.set(
-                        -4.5,
-                        .22,
-                        0
-                    );
-
-
-                    b.visible=true;
-
-                    b.userData.active=true;
-
-
+function checkPocket(b) {
+    for (const p of pockets) {
+        const dx = b.position.x - p[0];
+        const dz = b.position.z - p[1];
+        const distance = Math.sqrt(dx * dx + dz * dz);
+        if (distance < 0.55) {
+            b.userData.vx = 0;
+            b.userData.vz = 0;
+            if (b === cueBall) {
+                b.userData.active = false;
+                b.visible = false;
+                setTimeout(() => {
+                    b.position.set(-4.5, 0.22, 0);
+                    b.visible = true;
+                    b.userData.active = true;
                     nextTurn();
-
-                },700);
-
-
-            }else{
-
-                b.userData.active=false;
-
-                b.visible=false;
-
-
+                }, 700);
+            } else {
+                b.userData.active = false;
+                b.visible = false;
                 scores[currentPlayer]++;
-
                 updateScores();
-
-
-                showMessage(
-                    "🎱 Игрок "+
-                    (currentPlayer+1)+
-                    " забил шар!"
-                );
-
-
-                setTimeout(
-                    hideMessage,
-                    800
-                );
-
+                showMessage("🎱 Игрок " + (currentPlayer + 1) + " забил шар!");
+                setTimeout(hideMessage, 800);
             }
-
-
             break;
         }
-
     }
-
 }
 
-
 /* =========================================================
-   КОНЕЦ ХОДА
+   КОНЕЦ ХОДА / ОЧЕРЕДЬ
 ========================================================= */
-
-function detectTurnEnd(){
-
-    const moving =
-        isMoving();
-
-
-    if(
-        previousMoving &&
-        !moving
-    ){
-
-        cueStick.visible=true;
-
-        aimLine.visible=true;
-
-
+function detectTurnEnd() {
+    const moving = isMoving();
+    if (previousMoving && !moving) {
+        cueStick.visible = true;
+        aimLine.visible = true;
         updateCue();
-
         updateAimLine();
-
         updateCamera();
-
-
-        const remaining =
-            balls.filter(
-                b =>
-                b!==cueBall &&
-                b.userData.active
-            );
-
-
-        if(
-            remaining.length===0
-        ){
-
-            let winner=0;
-
-
-            for(
-                let i=1;
-                i<playerCount;
-                i++
-            ){
-
-                if(
-                    scores[i]>
-                    scores[winner]
-                ){
-
-                    winner=i;
-
-                }
-
+        const remaining = balls.filter(b => b !== cueBall && b.userData.active);
+        if (remaining.length === 0) {
+            let winner = 0;
+            for (let i = 1; i < playerCount; i++) {
+                if (scores[i] > scores[winner]) winner = i;
             }
-
-
-            showMessage(
-
-                "🏆 ПОБЕДИЛ ИГРОК "+
-                (winner+1)+
-                "!<br><br>"+
-                "Счёт: "+
-                scores[winner]
-
-            );
-
+            showMessage("🏆 ПОБЕДИЛ ИГРОК " + (winner + 1) + "!<br><br>Счёт: " + scores[winner]);
         }
-
     }
-
-
-    previousMoving =
-        moving;
-
+    previousMoving = moving;
 }
 
-
-/* =========================================================
-   СЛЕДУЮЩИЙ ИГРОК
-========================================================= */
-
-function nextTurn(){
-
-    currentPlayer =
-        (currentPlayer+1) %
-        playerCount;
-
-
+function nextTurn() {
+    currentPlayer = (currentPlayer + 1) % playerCount;
     updateScores();
-
-
-    cueStick.visible=true;
-
-    aimLine.visible=true;
-
-
-    showMessage(
-        "Ход игрока "+
-        (currentPlayer+1)
-    );
-
-
-    setTimeout(
-        hideMessage,
-        700
-    );
-
-
+    cueStick.visible = true;
+    aimLine.visible = true;
+    showMessage("Ход игрока " + (currentPlayer + 1));
+    setTimeout(hideMessage, 700);
     updateCue();
-
     updateAimLine();
-
     updateCamera();
-
 }
-
 
 /* =========================================================
    UI
 ========================================================= */
-
-function updateScores(){
-
-    document.getElementById("turn")
-    .textContent =
-        "Ход: Игрок "+
-        (currentPlayer+1);
-
-
-    for(
-        let i=0;
-        i<4;
-        i++
-    ){
-
-        const el =
-            document.getElementById(
-                "s"+i
-            );
-
-
-        el.style.display =
-            i<playerCount
-            ? "block"
-            : "none";
-
-
-        el.textContent =
-            "Игрок "+
-            (i+1)+
-            ": "+
-            scores[i];
-
-
-        el.classList.toggle(
-            "active",
-            i===currentPlayer
-        );
-
+function updateScores() {
+    document.getElementById("turn").textContent = "Ход: Игрок " + (currentPlayer + 1);
+    for (let i = 0; i < 4; i++) {
+        const el = document.getElementById("s" + i);
+        el.style.display = i < playerCount ? "block" : "none";
+        el.textContent = "Игрок " + (i + 1) + ": " + scores[i];
+        el.classList.toggle("active", i === currentPlayer);
     }
-
 }
 
-
-function showMessage(text){
-
-    const el =
-        document.getElementById(
-            "message"
-        );
-
-
-    el.innerHTML=text;
-
-    el.style.display="block";
-
+function showMessage(text) {
+    const el = document.getElementById("message");
+    el.innerHTML = text;
+    el.style.display = "block";
 }
 
-
-function hideMessage(){
-
-    document.getElementById(
-        "message"
-    ).style.display="none";
-
+function hideMessage() {
+    document.getElementById("message").style.display = "none";
 }
-
 
 /* =========================================================
    RESIZE
 ========================================================= */
-
-function resize(){
-
-    camera.aspect =
-        innerWidth/
-        innerHeight;
-
-
+function resize() {
+    camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
-
-
-    renderer.setSize(
-        innerWidth,
-        innerHeight
-    );
-
+    renderer.setSize(innerWidth, innerHeight);
 }
-
 
 /* =========================================================
    АНИМАЦИЯ
 ========================================================= */
-
-function animate(){
-
-    requestAnimationFrame(
-        animate
-    );
-
-
-    const dt =
-        Math.min(
-            clock.getDelta(),
-            .035
-        );
-
-
-    if(isMoving()){
-
+function animate() {
+    requestAnimationFrame(animate);
+    const dt = Math.min(clock.getDelta(), 0.035);
+    if (isMoving()) {
         updatePhysics(dt);
-
-    }else{
-
+    } else {
         updateAim();
-
     }
-
-
     detectTurnEnd();
-
-
-    renderer.render(
-        scene,
-        camera
-    );
-
+    renderer.render(scene, camera);
 }
-
 </script>
-
 </body>
 </html>
-
-```
