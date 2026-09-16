@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Скоростная печать</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #09090b;
+            --panel: #111114;
+            --panel-light: #18181d;
+            --border: #29292f;
+            --text: #f5f5f5;
+            --muted: #8b8b95;
+            --accent: #8b5cf6;
+            --accent-light: #a78bfa;
+            --green: #22c55e;
+            --red: #ef4444;
+        }
+
+        body {
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at 50% -10%, rgba(139, 92, 246, 0.18), transparent 35%),
+                var(--bg);
+            color: var(--text);
+            font-family: Arial, Helvetica, sans-serif;
+            display: flex;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 1000px;
+            padding: 30px 20px 50px;
+        }
+
+        /* HEADER */
+
+        header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .logo {
+            display: inline-block;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--accent-light);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        h1 {
+            font-size: clamp(34px, 6vw, 58px);
+            line-height: 1;
+            font-weight: 800;
+            letter-spacing: -2px;
+            margin-bottom: 12px;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: 16px;
+        }
+
+        /* LEVELS */
+
+        .levels {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .level-btn {
+            background: var(--panel);
+            color: var(--muted);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 18px 12px;
+            cursor: pointer;
+            transition: 0.2s ease;
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .level-btn:hover {
+            border-color: #44444d;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .level-btn.active {
+            background: rgba(139, 92, 246, 0.13);
+            border-color: var(--accent);
+            color: white;
+            box-shadow: 0 0 25px rgba(139, 92, 246, 0.1);
+        }
+
+        .level-name {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .level-description {
+            display: block;
+            font-size: 12px;
+            font-weight: 400;
+            color: var(--muted);
+        }
+
+        /* GAME PANEL */
+
+        .game-panel {
+            background: rgba(17, 17, 20, 0.9);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: clamp(20px, 5vw, 45px);
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.35);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin-bottom: 35px;
+        }
+
+        .stat {
+            flex: 1;
+            background: var(--panel-light);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 13px 16px;
+        }
+
+        .stat-label {
+            color: var(--muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        /* WORD */
+
+        .word-area {
+            text-align: center;
+            padding: 35px 10px 30px;
+        }
+
+        .instruction {
+            color: var(--muted);
+            font-size: 14px;
+            margin-bottom: 18px;
+        }
+
+        .word-display {
+            font-size: clamp(30px, 7vw, 62px);
+            font-weight: 800;
+            letter-spacing: 2px;
+            min-height: 75px;
+            word-break: break-word;
+        }
+
+        .word-display .correct {
+            color: var(--green);
+        }
+
+        .word-display .incorrect {
+            color: var(--red);
+        }
+
+        .word-display .current {
+            color: var(--accent-light);
+            text-decoration: underline;
+            text-decoration-thickness: 3px;
+            text-underline-offset: 8px;
+        }
+
+        .word-display .pending {
+            color: #55555f;
+        }
+
+        /* INPUT */
+
+        .input-wrapper {
+            position: relative;
+            margin-top: 15px;
+        }
+
+        #typingInput {
+            width: 100%;
+            height: 64px;
+            background: #0c0c0f;
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            color: white;
+            font-size: 21px;
+            padding: 0 20px;
+            outline: none;
+            text-align: center;
+            transition: 0.2s;
+        }
+
+        #typingInput:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.08);
+        }
+
+        #typingInput.error {
+            border-color: var(--red);
+            animation: shake 0.18s linear;
+        }
+
+        @keyframes shake {
+            0%, 100% {
+                transform: translateX(0);
+            }
+            25% {
+                transform: translateX(-5px);
+            }
+            75% {
+                transform: translateX(5px);
+            }
+        }
+
+        .hint {
+            text-align: center;
+            color: #5d5d66;
+            font-size: 12px;
+            margin-top: 12px;
+        }
+
+        /* RESULT */
+
+        .result {
+            margin-top: 25px;
+            padding: 18px;
+            border-radius: 14px;
+            background: rgba(34, 197, 94, 0.08);
+            border: 1px solid rgba(34, 197, 94, 0.25);
+            text-align: center;
+            opacity: 0;
+            transform: translateY(8px);
+            pointer-events: none;
+            transition: 0.3s;
+        }
+
+        .result.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .result-title {
+            color: var(--green);
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .result-time {
+            font-size: 28px;
+            font-weight: 800;
+        }
+
+        .result-subtitle {
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        /* BUTTON */
+
+        .restart {
+            width: 100%;
+            margin-top: 25px;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            background: white;
+            color: #111;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .restart:hover {
+            background: #ddd;
+            transform: translateY(-1px);
+        }
+
+        /* FOOTER */
+
+        footer {
+            text-align: center;
+            margin-top: 25px;
+            color: #44444d;
+            font-size: 12px;
+        }
+
+        /* MOBILE */
+
+        @media (max-width: 600px) {
+            .app {
+                padding: 20px 12px 35px;
+            }
+
+            .levels {
+                gap: 7px;
+            }
+
+            .level-btn {
+                padding: 14px 6px;
+            }
+
+            .level-description {
+                display: none;
+            }
+
+            .game-panel {
+                border-radius: 18px;
+                padding: 20px 15px;
+            }
+
+            .stats {
+                gap: 7px;
+                margin-bottom: 20px;
+            }
+
+            .stat {
+                padding: 10px;
+            }
+
+            .stat-value {
+                font-size: 17px;
+            }
+
+            .word-area {
+                padding: 25px 5px;
+            }
+
+            #typingInput {
+                font-size: 17px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="app">
+
+    <header>
+        <div class="logo">Speed Type</div>
+        <h1>Скоростная печать</h1>
+        <p class="subtitle">Печатай слова как можно быстрее</p>
+    </header>
+
+    <div class="levels">
+
+        <button class="level-btn active" data-level="easy">
+            <span class="level-name">Лёгкий</span>
+            <span class="level-description">1 слово</span>
+        </button>
+
+        <button class="level-btn" data-level="medium">
+            <span class="level-name">Средний</span>
+            <span class="level-description">3 слова</span>
+        </button>
+
+        <button class="level-btn" data-level="hard">
+            <span class="level-name">Сложный</span>
+            <span class="level-description">5 слов</span>
+        </button>
+
+    </div>
+
+    <main class="game-panel">
+
+        <div class="stats">
+
+            <div class="stat">
+                <div class="stat-label">Время</div>
+                <div class="stat-value" id="timer">0.00 с</div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-label">Очки</div>
+                <div class="stat-value" id="score">0</div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-label">Рекорд</div>
+                <div class="stat-value" id="best">—</div>
+            </div>
+
+        </div>
+
+        <section class="word-area">
+
+            <div class="instruction">
+                Напечатай текст ниже
+            </div>
+
+            <div class="word-display" id="wordDisplay"></div>
+
+            <div class="input-wrapper">
+                <input
+                    id="typingInput"
+                    type="text"
+                    autocomplete="off"
+                    autocapitalize="none"
+                    spellcheck="false"
+                    placeholder="Начинай печатать..."
+                >
+            </div>
+
+            <div class="hint">
+                Таймер стартует автоматически с первой буквы
+            </div>
+
+        </section>
+
+        <div class="result" id="result">
+
+            <div class="result-title">
+                ✓ Отлично!
+            </div>
+
+            <div class="result-time" id="resultTime">
+                0.00 с
+            </div>
+
+            <div class="result-subtitle">
+                Время выполнения задания
+            </div>
+
+        </div>
+
+        <button class="restart" id="restart">
+            Новое задание
+        </button>
+
+    </main>
+
+    <footer>
+        Скоростная печать · Тренируй скорость и точность
+    </footer>
+
+</div>
+
+
+<script>
+
+    // -----------------------------------------
+    // СЛОВАРЬ
+    // -----------------------------------------
+
+    const words = [
+        "машина",
+        "комната",
+        "телефон",
+        "компьютер",
+        "клавиатура",
+        "монитор",
+        "программа",
+        "интернет",
+        "самолет",
+        "путешествие",
+        "приключение",
+        "космос",
+        "планета",
+        "галактика",
+        "звезда",
+        "молния",
+        "облако",
+        "дерево",
+        "цветок",
+        "радуга",
+        "океан",
+        "парус",
+        "корабль",
+        "город",
+        "улица",
+        "площадь",
+        "магазин",
+        "ресторан",
+        "завтрак",
+        "вечер",
+        "утро",
+        "музыка",
+        "картина",
+        "история",
+        "будущее",
+        "знание",
+        "скорость",
+        "точность",
+        "энергия",
+        "вдохновение",
+        "технология",
+        "создание",
+        "разработка",
+        "искусство",
+        "ученик",
+        "учитель",
+        "книга",
+        "тетрадь",
+        "ручка",
+        "школа",
+        "университет",
+        "работа",
+        "отдых",
+        "спорт",
+        "победа",
+        "результат",
+        "команда",
+        "игрок",
+        "уровень",
+        "задание",
+        "прогресс",
+        "практика",
+        "тренировка"
+    ];
+
+    // -----------------------------------------
+    // НАСТРОЙКИ
+    // -----------------------------------------
+
+    const levels = {
+        easy: 1,
+        medium: 3,
+        hard: 5
+    };
+
+    let currentLevel = "easy";
+    let currentWords = [];
+
+    let startTime = null;
+    let timerInterval = null;
+    let gameStarted = false;
+    let gameFinished = false;
+
+    let score = 0;
+
+    // -----------------------------------------
+    // DOM
+    // -----------------------------------------
+
+    const wordDisplay = document.getElementById("wordDisplay");
+    const typingInput = document.getElementById("typingInput");
+    const timerElement = document.getElementById("timer");
+    const scoreElement = document.getElementById("score");
+    const bestElement = document.getElementById("best");
+    const result = document.getElementById("result");
+    const resultTime = document.getElementById("resultTime");
+    const restartButton = document.getElementById("restart");
+    const levelButtons = document.querySelectorAll(".level-btn");
+
+    // -----------------------------------------
+    // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+    // -----------------------------------------
+
+    function randomWords(count) {
+
+        const shuffled = [...words].sort(() => Math.random() - 0.5);
+
+        return shuffled.slice(0, count);
+    }
+
+
+    function getBestKey() {
+        return "typing-best-" + currentLevel;
+    }
+
+
+    function loadBest() {
+
+        const best = localStorage.getItem(getBestKey());
+
+        if (best) {
+            bestElement.textContent = Number(best).toFixed(2) + " с";
+        } else {
+            bestElement.textContent = "—";
+        }
+    }
+
+
+    function formatTime(milliseconds) {
+
+        return (milliseconds / 1000).toFixed(2);
+    }
+
+
+    // -----------------------------------------
+    // НОВАЯ ИГРА
+    // -----------------------------------------
+
+    function newGame() {
+
+        clearInterval(timerInterval);
+
+        startTime = null;
+        gameStarted = false;
+        gameFinished = false;
+
+        timerElement.textContent = "0.00 с";
+
+        result.classList.remove("show");
+
+        currentWords = randomWords(levels[currentLevel]);
+
+        wordDisplay.textContent = currentWords.join(" ");
+
+        typingInput.value = "";
+        typingInput.classList.remove("error");
+
+        loadBest();
+
+        setTimeout(() => {
+            typingInput.focus();
+        }, 50);
+    }
+
+
+    // -----------------------------------------
+    // ТАЙМЕР
+    // -----------------------------------------
+
+    function startTimer() {
+
+        if (gameStarted) return;
+
+        gameStarted = true;
+        startTime = performance.now();
+
+        timerInterval = setInterval(() => {
+
+            const elapsed = performance.now() - startTime;
+
+            timerElement.textContent =
+                formatTime(elapsed) + " с";
+
+        }, 10);
+    }
+
+
+    // -----------------------------------------
+    // ПРОВЕРКА ВВОДА
+    // -----------------------------------------
+
+    function checkInput() {
+
+        if (gameFinished) return;
+
+        const typed = typingInput.value;
+        const target = currentWords.join(" ");
+
+        if (typed.length > 0 && !gameStarted) {
+            startTimer();
+        }
+
+        // Визуальное отображение символов
+        wordDisplay.innerHTML = "";
+
+        for (let i = 0; i < target.length; i++) {
+
+            const span = document.createElement("span");
+
+            if (i < typed.length) {
+
+                if (typed[i] === target[i]) {
+                    span.className = "correct";
+                } else {
+                    span.className = "incorrect";
+                }
+
+            } else if (i === typed.length) {
+
+                span.className = "current";
+
+            } else {
+
+                span.className = "pending";
+            }
+
+            span.textContent = target[i];
+
+            wordDisplay.appendChild(span);
+        }
+
+
+        // Если введён неправильный символ
+        if (
+            typed.length > 0 &&
+            target.substring(0, typed.length) !== typed
+        ) {
+
+            typingInput.classList.add("error");
+
+            setTimeout(() => {
+                typingInput.classList.remove("error");
+            }, 180);
+
+            return;
+        }
+
+
+        // Победа
+        if (typed === target) {
+
+            finishGame();
+        }
+    }
+
+
+    // -----------------------------------------
+    // ЗАВЕРШЕНИЕ
+    // -----------------------------------------
+
+    function finishGame() {
+
+        gameFinished = true;
+
+        clearInterval(timerInterval);
+
+        const elapsed = performance.now() - startTime;
+        const seconds = elapsed / 1000;
+
+        timerElement.textContent = seconds.toFixed(2) + " с";
+
+        resultTime.textContent = seconds.toFixed(2) + " с";
+
+        result.classList.add("show");
+
+        // Очки
+        score++;
+
+        scoreElement.textContent = score;
+
+        // Лучший результат
+        const oldBest = localStorage.getItem(getBestKey());
+
+        if (!oldBest || seconds < Number(oldBest)) {
+
+            localStorage.setItem(
+                getBestKey(),
+                seconds.toString()
+            );
+
+            bestElement.textContent =
+                seconds.toFixed(2) + " с";
+        }
+
+        // Убираем фокус
+        typingInput.blur();
+    }
+
+
+    // -----------------------------------------
+    // СОБЫТИЯ
+    // -----------------------------------------
+
+    typingInput.addEventListener("input", checkInput);
+
+
+    typingInput.addEventListener("paste", function(event) {
+
+        event.preventDefault();
+
+    });
+
+
+    restartButton.addEventListener("click", () => {
+
+        newGame();
+
+    });
+
+
+    levelButtons.forEach(button => {
+
+        button.addEventListener("click", () => {
+
+            levelButtons.forEach(btn => {
+                btn.classList.remove("active");
+            });
+
+            button.classList.add("active");
+
+            currentLevel = button.dataset.level;
+
+            score = 0;
+            scoreElement.textContent = "0";
+
+            newGame();
+
+        });
+
+    });
+
+
+    // Enter — новое задание
+    document.addEventListener("keydown", (event) => {
+
+        if (
+            event.key === "Enter" &&
+            gameFinished
+        ) {
+            newGame();
+        }
+
+    });
+
+
+    // -----------------------------------------
+    // ЗАПУСК
+    // -----------------------------------------
+
+    newGame();
+
+</script>
+
+</body>
+</html>
