@@ -726,6 +726,8 @@ function showEndScreen(won){
   endStats.innerHTML=won
     ? "Все 9 уровней пройдены!<br>Счёт: <b>"+Math.floor(score)+"</b>"
     : "Достигнут уровень: <b>"+level+" / 9</b><br>Счёт: <b>"+Math.floor(score)+"</b>";
+ window.parent.postMessage({ type: "aigames:score", score: score }, "*");
+
   endScreen.classList.remove("hidden");
   endScreen.style.display="flex";
   pauseBtn.style.display="none";
