@@ -727,6 +727,11 @@ function showEndScreen(won){
     ? "Все 9 уровней пройдены!<br>Счёт: <b>"+Math.floor(score)+"</b>"
     : "Достигнут уровень: <b>"+level+" / 9</b><br>Счёт: <b>"+Math.floor(score)+"</b>";
 
+  // ОТПРАВКА РЕЗУЛЬТАТА В ЛАУНЧЕР
+  // Лаунчер (index.html) слушает такие сообщения и сам решает, стал ли
+  // это новым рекордом текущего игрока. Отправляем и при победе, и при
+  // поражении — засчитывается лучший счёт, а не факт победы.
+  window.parent.postMessage({ type: "aigames:score", score: Math.floor(score) }, "*");
 
   endScreen.classList.remove("hidden");
   endScreen.style.display="flex";
