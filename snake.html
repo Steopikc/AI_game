@@ -696,6 +696,8 @@
 
     overlayMsg.textContent =
       `Счёт: ${score}`;
+    window.parent.postMessage({ type: "aigames:score", score: score }, "*");
+
 
     startBtn.textContent =
       '🔄 Ещё раз';
