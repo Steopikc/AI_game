@@ -165,9 +165,7 @@ button:active {
 </style>
 </head>
 <body>
-
 <canvas id="game"></canvas>
-
 <div id="ui">
     <span class="label">SCORE</span> <span id="score">0</span>
     &nbsp;&nbsp;
@@ -178,10 +176,8 @@ button:active {
     <span class="label">COMBO</span> <span id="combo">×1</span>
 </div>
 <div id="levelBar"><div id="levelProgress"></div></div>
-
 <div id="hint">← → / A D — движение &nbsp;|&nbsp; SPACE / ↑ / W — прыжок</div>
 <button id="jumpBtn">ПРЫЖОК</button>
-
 <div id="gameOver">
     <h1>GAME OVER</h1>
     <div class="stats">
@@ -192,13 +188,10 @@ button:active {
     </div>
     <button onclick="restartGame()">ЕЩЁ РАЗ</button>
 </div>
-
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-
 let W = 400, H = 700;
-
 function resize() {
     W = Math.min(window.innerWidth, 480);
     H = window.innerHeight;
@@ -207,7 +200,6 @@ function resize() {
 }
 resize();
 window.addEventListener("resize", resize);
-
 const player = {
     x: W / 2 - 16, y: H - 160,
     width: 32, height: 32,
@@ -215,7 +207,6 @@ const player = {
     speed: 3.6, jumpPower: -12.0, gravity: 0.36,
     trail: []
 };
-
 let platforms = [];
 let particles = [];
 let coins = [];
@@ -230,10 +221,8 @@ let screenShake = 0;
 let stars = [];
 let nebula = [];
 let time = 0;
-
 const keys = { left: false, right: false, jump: false };
 let grounded = false;
-
 document.addEventListener("keydown", e => {
     if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") keys.left = true;
     if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") keys.right = true;
@@ -247,29 +236,24 @@ document.addEventListener("keyup", e => {
     if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") keys.right = false;
     if (e.key === " " || e.key === "ArrowUp" || e.key.toLowerCase() === "w") keys.jump = false;
 });
-
 canvas.addEventListener("touchstart", e => { e.preventDefault(); handleTouch(e); }, { passive: false });
 canvas.addEventListener("touchmove", e => { e.preventDefault(); handleTouch(e); }, { passive: false });
 canvas.addEventListener("touchend", e => { e.preventDefault(); keys.left = keys.right = false; keys.jump = false; }, { passive: false });
-
 function handleTouch(e) {
     const t = e.touches[0];
     if (!t) return;
     if (t.clientX < window.innerWidth / 2) { keys.left = true; keys.right = false; }
     else { keys.right = true; keys.left = false; }
 }
-
 canvas.addEventListener("mousedown", e => {
     if (e.clientX < window.innerWidth / 2) { keys.left = true; keys.right = false; }
     else { keys.right = true; keys.left = false; }
 });
 canvas.addEventListener("mouseup", () => { keys.left = keys.right = false; keys.jump = false; });
-
 function getDifficulty() {
     level = Math.floor(score / 500) + 1;
     return Math.min(level, 12);
 }
-
 function spawnParticles(x, y, color, count = 8, speed = 3, sparkle = false) {
     for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
@@ -286,7 +270,6 @@ function spawnParticles(x, y, color, count = 8, speed = 3, sparkle = false) {
         });
     }
 }
-
 function updateParticles() {
     for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
@@ -297,7 +280,6 @@ function updateParticles() {
         if (p.life <= 0) particles.splice(i, 1);
     }
 }
-
 function drawParticles() {
     for (const p of particles) {
         ctx.globalAlpha = Math.max(0, p.life);
@@ -316,7 +298,6 @@ function drawParticles() {
     ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
 }
-
 function initStars() {
     stars = [];
     for (let i = 0; i < 70; i++) {
@@ -340,7 +321,6 @@ function initStars() {
         });
     }
 }
-
 function createPlatform(x, y, width, type = "normal") {
     platforms.push({
         x, y, width, height: 15, type,
@@ -352,7 +332,6 @@ function createPlatform(x, y, width, type = "normal") {
         pulse: Math.random() * Math.PI * 2
     });
 }
-
 function createStartingPlatforms() {
     platforms = []; coins = []; particles = [];
     const startY = H - 90;
@@ -360,7 +339,6 @@ function createStartingPlatforms() {
     lastPlatformY = startY;
     for (let i = 0; i < 22; i++) createNextPlatform();
 }
-
 function createNextPlatform() {
     const d = getDifficulty();
     // Gaps must stay within normal jump height (~175px)
@@ -370,22 +348,18 @@ function createNextPlatform() {
     maxGap = Math.min(maxGap, 140);
     const gap = minGap + Math.random() * (maxGap - minGap);
     const y = lastPlatformY - gap;
-
     let minW = 88 - d * 3.5, maxW = 145 - d * 6;
     minW = Math.max(minW, 52);
     maxW = Math.max(maxW, 72);
     const width = minW + Math.random() * (maxW - minW);
     const x = Math.random() * (W - width);
-
     let type = "normal";
     const r = Math.random();
     if (d >= 5 && r < 0.09 + (d - 5) * 0.025) type = "danger";
     else if (d >= 3 && r < 0.18 + d * 0.03) type = "moving";
     else if (d >= 2 && r < 0.14 + d * 0.015) type = "spring";
     else if (d >= 4 && r < 0.12 + d * 0.02) type = "fragile";
-
     createPlatform(x, y, width, type);
-
     if (type === "danger") {
         const safeWidth = 70 + Math.random() * 40;
         let safeX;
@@ -399,10 +373,8 @@ function createNextPlatform() {
         const safeType = safeTypes[Math.floor(Math.random() * safeTypes.length)];
         createPlatform(safeX, safeY, safeWidth, safeType);
     }
-
     lastPlatformY = y;
 }
-
 function updatePlatforms() {
     const d = getDifficulty();
     for (const p of platforms) {
@@ -421,13 +393,11 @@ function updatePlatforms() {
     while (lastPlatformY > highest) createNextPlatform();
     platforms = platforms.filter(p => p.y < cameraY + H + 250);
 }
-
 function updateCoins() {
     for (let i = coins.length - 1; i >= 0; i--) {
         const c = coins[i];
         c.offset = Math.sin(Date.now() / 260 + c.phase) * 5;
         c.spin = (c.spin || 0) + 0.08;
-
         if (Math.abs(player.x + player.width / 2 - (c.x + 8)) < 22 &&
             Math.abs(player.y + player.height / 2 - (c.y + c.offset)) < 22) {
             score += Math.floor(35 * combo);
@@ -439,18 +409,14 @@ function updateCoins() {
         }
     }
 }
-
 function updatePlayer() {
     if (!gameRunning) return;
-
     if (keys.left) player.vx = -player.speed;
     else if (keys.right) player.vx = player.speed;
     else player.vx *= 0.82;
-
     player.x += player.vx;
     if (player.x < 0) player.x = 0;
     if (player.x + player.width > W) player.x = W - player.width;
-
     // Jump on button when grounded
     if (keys.jump && grounded) {
         let jump = player.jumpPower;
@@ -492,24 +458,19 @@ function updatePlayer() {
         combo = Math.min(combo + 0.15, 5);
         maxCombo = Math.max(maxCombo, combo);
     }
-
     player.vy += player.gravity;
     const oldY = player.y;
     player.y += player.vy;
-
     player.trail.push({ x: player.x + player.width / 2, y: player.y + player.height / 2, life: 1 });
     if (player.trail.length > 14) player.trail.shift();
     for (const t of player.trail) t.life -= 0.07;
-
     grounded = false;
-
     for (const p of platforms) {
         if (p.broken) continue;
         const playerBottom = player.y + player.height;
         const oldBottom = oldY + player.height;
         const horizontal = player.x + player.width > p.x + 2 && player.x < p.x + p.width - 2;
         const vertical = oldBottom <= p.y + 4 && playerBottom >= p.y;
-
         if (player.vy >= 0 && horizontal && vertical) {
             if (p.type === "danger") {
                 gameOver();
@@ -517,12 +478,10 @@ function updatePlayer() {
                 screenShake = 16;
                 return;
             }
-
             // Land — stay on platform, wait for jump button
             player.y = p.y - player.height;
             player.vy = 0;
             grounded = true;
-
             // Moving platform carries the player
             if (p.type === "moving") {
                 player.x += p.moveDir * p.moveSpeed * (1 + getDifficulty() * 0.11);
@@ -532,17 +491,14 @@ function updatePlayer() {
             break;
         }
     }
-
     if (comboTimer > 0) comboTimer--;
     else combo = Math.max(1, combo - 0.02);
 }
-
 function updateCamera() {
     const target = player.y - H * 0.38;
     if (target < cameraY) cameraY += (target - cameraY) * 0.09;
     if (screenShake > 0) screenShake *= 0.84;
 }
-
 function updateScore() {
     const heightScore = Math.max(0, Math.floor((-player.y + H) / 9.5));
     score = Math.floor(Math.max(score, heightScore));
@@ -560,20 +516,17 @@ jumpBtn.addEventListener("touchend", e => { e.preventDefault(); keys.jump = fals
 jumpBtn.addEventListener("mousedown", e => { e.preventDefault(); keys.jump = true; });
 jumpBtn.addEventListener("mouseup", e => { keys.jump = false; });
 jumpBtn.addEventListener("mouseleave", e => { keys.jump = false; });
-
 document.getElementById("best").textContent = best;
     document.getElementById("level").textContent = level;
     document.getElementById("combo").textContent = "×" + combo.toFixed(1);
     document.getElementById("levelProgress").style.width = progress + "%";
 }
-
 function checkGameOver() {
     if (player.y > cameraY + H + 120) {
         gameOver();
         spawnParticles(player.x + 16, player.y, "#60a5fa", 22, 4.5, true);
     }
 }
-
 function gameOver() {
     if (!gameRunning) return;
     gameRunning = false;
@@ -584,8 +537,9 @@ function gameOver() {
     const go = document.getElementById("gameOver");
     go.style.display = "block";
     requestAnimationFrame(() => go.classList.add("show"));
+    // Отправка счёта в лаунчер (можно вызывать сколько угодно раз — сохранится лучший)
+    window.parent.postMessage({ type: "aigames:score", score: score }, "*");
 }
-
 function restartGame() {
     player.x = W / 2 - 16;
     player.y = H - 160;
@@ -601,7 +555,6 @@ function restartGame() {
     createStartingPlatforms();
     initStars();
 }
-
 function roundRect(x, y, w, h, r) {
     ctx.beginPath();
     ctx.moveTo(x + r, y);
@@ -615,7 +568,6 @@ function roundRect(x, y, w, h, r) {
     ctx.quadraticCurveTo(x, y, x + r, y);
     ctx.closePath();
 }
-
 function drawBackground() {
     const g = ctx.createLinearGradient(0, 0, 0, H);
     g.addColorStop(0, "#060612");
@@ -623,7 +575,6 @@ function drawBackground() {
     g.addColorStop(1, "#080814");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
-
     for (const n of nebula) {
         const ny = ((n.y - cameraY * n.speed) % (H + 200) + H + 200) % (H + 200) - 100;
         const grd = ctx.createRadialGradient(n.x, ny, 0, n.x, ny, n.r);
@@ -634,7 +585,6 @@ function drawBackground() {
         ctx.arc(n.x, ny, n.r, 0, Math.PI * 2);
         ctx.fill();
     }
-
     for (const s of stars) {
         const sy = ((s.y - cameraY * s.speed) % (H + 50) + H + 50) % (H + 50) - 25;
         const tw = 0.55 + Math.sin(time * 0.04 + s.twinkle) * 0.45;
@@ -650,7 +600,6 @@ function drawBackground() {
         }
     }
     ctx.globalAlpha = 1;
-
     ctx.strokeStyle = "rgba(255,255,255,0.018)";
     ctx.lineWidth = 1;
     const offset = (-cameraY * 0.25) % 55;
@@ -661,12 +610,10 @@ function drawBackground() {
         ctx.stroke();
     }
 }
-
 function drawPlatforms() {
     for (const p of platforms) {
         const sy = p.y - cameraY;
         if (sy < -50 || sy > H + 50) continue;
-
         let color, glow;
         switch (p.type) {
             case "danger":
@@ -680,20 +627,16 @@ function drawPlatforms() {
             default:
                 color = "#e2e8f0"; glow = "rgba(200,210,255,0.18)";
         }
-
         if (p.broken) ctx.globalAlpha = Math.max(0, 1 - p.breakTimer / 38);
-
         ctx.shadowColor = glow;
         ctx.shadowBlur = 14;
         ctx.fillStyle = color;
         roundRect(p.x, sy, p.width, p.height, 6);
         ctx.fill();
-
         ctx.shadowBlur = 0;
         ctx.fillStyle = "rgba(255,255,255,0.28)";
         roundRect(p.x + 2, sy + 1.5, p.width - 4, 4.5, 3);
         ctx.fill();
-
         if (p.type === "spring" && !p.broken) {
             const pulse = 0.7 + Math.sin(p.pulse) * 0.3;
             ctx.strokeStyle = `rgba(0,0,0,${0.2 * pulse})`;
@@ -703,7 +646,6 @@ function drawPlatforms() {
             ctx.lineTo(p.x + p.width - 12, sy + 7.5);
             ctx.stroke();
         }
-
         if (p.type === "danger") {
             ctx.fillStyle = "rgba(0,0,0,0.28)";
             for (let i = 7; i < p.width - 5; i += 11) {
@@ -714,30 +656,25 @@ function drawPlatforms() {
                 ctx.fill();
             }
         }
-
         ctx.globalAlpha = 1;
         ctx.shadowBlur = 0;
     }
 }
-
 function drawCoins() {
     for (const c of coins) {
         const sy = c.y + c.offset - cameraY;
         const pulse = 0.85 + Math.sin(time * 0.08 + c.phase) * 0.15;
-
         ctx.shadowColor = "rgba(251,191,36,0.7)";
         ctx.shadowBlur = 14;
         ctx.fillStyle = "#fbbf24";
         ctx.beginPath();
         ctx.arc(c.x + 8, sy + 8, 8 * pulse, 0, Math.PI * 2);
         ctx.fill();
-
         ctx.shadowBlur = 0;
         ctx.fillStyle = "#fef3c7";
         ctx.beginPath();
         ctx.arc(c.x + 5.5, sy + 5.5, 3, 0, Math.PI * 2);
         ctx.fill();
-
         ctx.strokeStyle = "rgba(255,255,255,0.35)";
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -746,12 +683,10 @@ function drawCoins() {
     }
     ctx.shadowBlur = 0;
 }
-
 function drawPlayer() {
     const sy = player.y - cameraY;
     const shakeX = (Math.random() - 0.5) * screenShake;
     const shakeY = (Math.random() - 0.5) * screenShake;
-
     for (let i = 0; i < player.trail.length; i++) {
         const t = player.trail[i];
         if (t.life <= 0) continue;
@@ -767,11 +702,9 @@ function drawPlayer() {
         ctx.fill();
     }
     ctx.globalAlpha = 1;
-
     ctx.fillStyle = "rgba(0,0,0,0.3)";
     roundRect(player.x + 5 + shakeX, sy + 7 + shakeY, player.width, player.height, 7);
     ctx.fill();
-
     ctx.shadowColor = "rgba(96,165,250,0.65)";
     ctx.shadowBlur = 20;
     const bodyGrad = ctx.createLinearGradient(player.x, sy, player.x, sy + player.height);
@@ -782,11 +715,9 @@ function drawPlayer() {
     roundRect(player.x + shakeX, sy + shakeY, player.width, player.height, 8);
     ctx.fill();
     ctx.shadowBlur = 0;
-
     ctx.fillStyle = "rgba(255,255,255,0.35)";
     roundRect(player.x + 5 + shakeX, sy + 4 + shakeY, 12, 7, 4);
     ctx.fill();
-
     ctx.fillStyle = "#fff";
     ctx.beginPath();
     ctx.arc(player.x + 10 + shakeX, sy + 13 + shakeY, 4.2, 0, Math.PI * 2);
@@ -797,14 +728,12 @@ function drawPlayer() {
     ctx.arc(player.x + 11 + shakeX, sy + 14 + shakeY, 2.1, 0, Math.PI * 2);
     ctx.arc(player.x + 23 + shakeX, sy + 14 + shakeY, 2.1, 0, Math.PI * 2);
     ctx.fill();
-
     ctx.fillStyle = "rgba(255,255,255,0.8)";
     ctx.beginPath();
     ctx.arc(player.x + 9.5 + shakeX, sy + 12 + shakeY, 1.1, 0, Math.PI * 2);
     ctx.arc(player.x + 21.5 + shakeX, sy + 12 + shakeY, 1.1, 0, Math.PI * 2);
     ctx.fill();
 }
-
 function drawVignette() {
     const grd = ctx.createRadialGradient(W / 2, H / 2, H * 0.25, W / 2, H / 2, H * 0.85);
     grd.addColorStop(0, "transparent");
@@ -812,7 +741,6 @@ function drawVignette() {
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, W, H);
 }
-
 function draw() {
     ctx.save();
     if (screenShake > 0.4) {
@@ -826,7 +754,6 @@ function draw() {
     drawVignette();
     ctx.restore();
 }
-
 function gameLoop() {
     time++;
     updatePlayer();
@@ -839,15 +766,12 @@ function gameLoop() {
     draw();
     requestAnimationFrame(gameLoop);
 }
-
-
 const jumpBtn = document.getElementById("jumpBtn");
 jumpBtn.addEventListener("touchstart", e => { e.preventDefault(); keys.jump = true; }, { passive: false });
 jumpBtn.addEventListener("touchend", e => { e.preventDefault(); keys.jump = false; }, { passive: false });
 jumpBtn.addEventListener("mousedown", e => { e.preventDefault(); keys.jump = true; });
 jumpBtn.addEventListener("mouseup", e => { keys.jump = false; });
 jumpBtn.addEventListener("mouseleave", e => { keys.jump = false; });
-
 document.getElementById("best").textContent = best;
 createStartingPlatforms();
 initStars();
