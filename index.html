@@ -14,13 +14,14 @@
 html, body { min-height: 100%; }
 body {
   font-family: Inter, "Segoe UI", system-ui, -apple-system, sans-serif; color: var(--text);
-  background: radial-gradient(circle at 12% 8%, rgba(119,54,255,.22), transparent 28%),
-              radial-gradient(circle at 90% 90%, rgba(35,112,255,.20), transparent 30%), #060a27;
+  background: linear-gradient(165deg, #0a0e2e 0%, #0c1238 40%, #0a1535 70%, #080d28 100%);
   overflow-x: hidden;
 }
-body::before { /* фон-картинка сайта */
-  content:""; position:fixed; inset:0; z-index:-3; pointer-events:none; opacity:.82;
-  background: linear-gradient(180deg, rgba(5,8,34,.20), rgba(5,8,34,.72)), url("сайтФон.png") center / cover no-repeat;
+body::before {
+  content:""; position:fixed; inset:0; z-index:-3; pointer-events:none;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(90,60,200,.12), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(40,80,180,.08), transparent 50%);
 }
 button, .game-card { -webkit-tap-highlight-color: transparent; }
 button { font-family: inherit; }
@@ -28,14 +29,30 @@ button { font-family: inherit; }
 
 #menu { width: min(1260px, calc(100% - 36px)); margin: 0 auto; padding: 24px 0 70px; }
 
-/* [НОВОЕ] ОТВЕЧАЕТ ЗА: верхнюю панель (кнопки «Рекорды», «Войти», «Выйти», имя игрока) */
-.topbar { display:flex; justify-content:flex-end; align-items:center; gap:10px; flex-wrap:wrap; }
+/* [НОВОЕ] ОТВЕЧАЕТ ЗА: верхнюю панель (кнопки «Рекорды», «Мои игры», «Войти», «Выйти», имя игрока) */
+.topbar {
+  display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;
+  margin-bottom:4px;
+}
+.topbar-left, .topbar-right { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .btn {
   border:1px solid rgba(91,228,255,.55); border-radius:12px; padding:9px 15px; color:#fff;
   background:rgba(32,43,105,.75); cursor:pointer; font-size:.9rem; font-weight:700; transition:.2s ease;
 }
 .btn:hover { background:linear-gradient(90deg,#7a4dff,#2bdfff); border-color:transparent; }
 .btn.primary { background:linear-gradient(90deg,#7a4dff,#2bdfff); border-color:transparent; }
+.btn.danger { border-color:rgba(255,100,120,.55); background:rgba(80,20,40,.75); }
+.btn.danger:hover { background:linear-gradient(90deg,#ff4a6a,#ff8a5c); border-color:transparent; }
+.btn.mine {
+  padding:12px 22px; font-size:1rem; border-radius:14px;
+  border:1px solid rgba(89,240,196,.55);
+  background:linear-gradient(135deg, rgba(89,240,196,.18), rgba(90,60,200,.25));
+  box-shadow:0 4px 20px rgba(89,240,196,.12);
+}
+.btn.mine:hover {
+  background:linear-gradient(90deg,#59f0c4,#7a4dff); border-color:transparent;
+  box-shadow:0 6px 28px rgba(89,240,196,.25);
+}
 .user-chip { color:#d7dcff; font-weight:700; font-size:.92rem; }
 
 header { position:relative; text-align:center; padding: 8px 0 34px; }
@@ -61,6 +78,11 @@ header { position:relative; text-align:center; padding: 8px 0 34px; }
 .game-card:hover {
   transform:translateY(-8px) scale(1.012); border-color:var(--accent);
   box-shadow:0 22px 55px rgba(0,0,0,.36), 0 0 30px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.game-card.custom { --accent:#59f0c4; }
+.game-card .custom-badge {
+  position:absolute; top:10px; left:10px; z-index:2; padding:3px 8px; border-radius:8px;
+  background:rgba(0,0,0,.55); color:#59f0c4; font-size:.7rem; font-weight:800; letter-spacing:.02em;
 }
 
 /* [НОВОЕ] ОТВЕЧАЕТ ЗА: обложку карточки (картинка; эмодзи — запасной вариант, если файла нет) */
@@ -101,16 +123,19 @@ header { position:relative; text-align:center; padding: 8px 0 34px; }
 .overlay { display:none; position:fixed; inset:0; z-index:2000; align-items:center; justify-content:center; padding:16px; background:rgba(2,4,20,.75); backdrop-filter:blur(6px); }
 .overlay.open { display:flex; }
 .modal { width:min(440px,100%); max-height:90vh; overflow:auto; padding:24px; border-radius:20px; background:#0b1137; border:1px solid rgba(111,101,255,.45); box-shadow:0 30px 80px rgba(0,0,0,.5); }
+.modal.wide { width:min(560px,100%); }
 .modal h2 { font-size:1.3rem; margin-bottom:14px; }
 .tabs { display:flex; gap:8px; margin-bottom:16px; }
 .tabs .btn { flex:1; }
 .tabs .btn.active { background:linear-gradient(90deg,#7a4dff,#2bdfff); border-color:transparent; }
 .field { display:block; margin-bottom:12px; font-size:.85rem; color:var(--muted); }
-.field input, .field select {
+.field input, .field select, .field textarea {
   width:100%; margin-top:5px; padding:11px 12px; border-radius:10px; color:#fff; font-size:1rem;
-  background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.18); font-family:inherit;
 }
+.field textarea { min-height:64px; resize:vertical; }
 .field select option { color:#000; }
+.field .hint { margin-top:4px; font-size:.78rem; color:var(--muted); opacity:.85; }
 .error { min-height:1.2em; margin-bottom:10px; color:#ff8aa5; font-size:.85rem; }
 .modal-actions { display:flex; gap:10px; }
 .modal-actions .btn { flex:1; }
@@ -118,6 +143,67 @@ table { width:100%; border-collapse:collapse; font-size:.92rem; }
 th, td { padding:8px 6px; text-align:left; border-bottom:1px solid rgba(255,255,255,.1); }
 tr.me td { color:var(--cyan); font-weight:800; }
 .empty { color:var(--muted); padding:14px 0; }
+
+/* [НОВОЕ] ОТВЕЧАЕТ ЗА: список своих игр во вкладке «Мои игры» */
+.custom-list { margin-bottom:18px; }
+.custom-item {
+  display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px;
+  border-radius:12px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
+}
+.custom-item .emoji { font-size:1.6rem; flex-shrink:0; }
+.custom-item .meta { flex:1; min-width:0; }
+.custom-item .meta strong { display:block; font-size:.95rem; }
+.custom-item .meta span { font-size:.78rem; color:var(--muted); }
+.custom-item .btn { padding:6px 10px; font-size:.8rem; flex-shrink:0; }
+.file-pick {
+  position:relative; display:flex; align-items:center; gap:10px; margin-top:5px; padding:12px; border-radius:10px;
+  background:rgba(255,255,255,.07); border:1px dashed rgba(255,255,255,.25); cursor:pointer; overflow:hidden;
+}
+.file-pick:hover { border-color:var(--cyan); background:rgba(83,232,255,.08); }
+.file-pick input[type=file] {
+  position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; font-size:0;
+}
+.file-pick .fname { color:var(--muted); font-size:.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; pointer-events:none; }
+.file-pick > span:first-child { pointer-events:none; }
+.row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+
+/* [НОВОЕ] вкладки внутри «Мои игры» и блок шаринга */
+.cg-tabs { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+.cg-tabs .btn { flex:1; min-width:100px; padding:10px 12px; font-size:.88rem; }
+.cg-tabs .btn.active { background:linear-gradient(90deg,#7a4dff,#2bdfff); border-color:transparent; }
+.cg-pane { display:none; }
+.cg-pane.active { display:block; }
+.share-game-list { max-height:220px; overflow:auto; margin-bottom:12px; }
+.share-game-item {
+  display:flex; align-items:center; gap:10px; padding:10px 12px; margin-bottom:6px;
+  border-radius:10px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1);
+  cursor:pointer; transition:.15s;
+}
+.share-game-item:hover, .share-game-item.selected {
+  border-color:rgba(89,240,196,.5); background:rgba(89,240,196,.1);
+}
+.share-game-item .emoji { font-size:1.4rem; }
+.share-game-item .meta { flex:1; min-width:0; }
+.share-game-item .meta strong { display:block; font-size:.92rem; }
+.share-result {
+  margin-top:12px; padding:14px; border-radius:12px;
+  background:rgba(89,240,196,.08); border:1px solid rgba(89,240,196,.3);
+  display:none;
+}
+.share-result.show { display:block; }
+.share-result label { display:block; font-size:.8rem; color:var(--muted); margin-bottom:6px; }
+.share-result textarea, .share-result input {
+  width:100%; padding:10px 12px; border-radius:10px; color:#fff; font-size:.85rem;
+  background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.15); font-family:ui-monospace,monospace;
+  resize:vertical; min-height:64px;
+}
+.share-result .copy-row { display:flex; gap:8px; margin-top:8px; }
+.share-result .copy-row .btn { flex:1; }
+.import-box textarea {
+  width:100%; min-height:90px; margin-top:5px; padding:11px 12px; border-radius:10px; color:#fff;
+  background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.18); font-family:ui-monospace,monospace; font-size:.85rem;
+}
 
 /* [НОВОЕ] ОТВЕЧАЕТ ЗА: всплывающее сообщение внизу («Новый рекорд», «Привет» и т.д.) */
 #toast {
@@ -132,6 +218,7 @@ tr.me td { color:var(--cyan); font-weight:800; }
   .games-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:13px; }
   .game-card{ min-height:215px; border-radius:18px; }
   .game-cover{ height:130px; font-size:4.2rem; }
+  .row2{ grid-template-columns:1fr; }
 }
 @media (max-width:470px){ .games-grid{ grid-template-columns:1fr; } .game-cover{ height:135px; } }
 @media (prefers-reduced-motion:reduce){ *{ transition:none !important; } }
@@ -196,6 +283,103 @@ tr.me td { color:var(--cyan); font-weight:800; }
   </div>
 </div>
 
+<!-- [НОВОЕ] ОТВЕЧАЕТ ЗА: вкладку «Мои игры» — добавление и управление локальными HTML-играми -->
+<!-- [НОВОЕ] ОТВЕЧАЕТ ЗА: вкладку «Мои игры» — добавление, шаринг и импорт локальных HTML-игр -->
+<div class="overlay" id="custom-overlay">
+  <div class="modal wide" role="dialog" aria-label="Мои игры">
+    <h2>Мои игры</h2>
+    <div class="cg-tabs" id="cg-tabs">
+      <button type="button" class="btn active" data-cg="list">Мои игры</button>
+      <button type="button" class="btn" data-cg="add">Добавить</button>
+      <button type="button" class="btn" data-cg="share">Поделиться</button>
+      <button type="button" class="btn" data-cg="import">Импорт</button>
+    </div>
+
+    <!-- Список своих игр -->
+    <div class="cg-pane active" id="cg-pane-list">
+      <div id="custom-list" class="custom-list"></div>
+    </div>
+
+    <!-- Добавить -->
+    <div class="cg-pane" id="cg-pane-add">
+      <label class="field">Название
+        <input id="cg-title" maxlength="40" placeholder="Например: Моя змейка">
+      </label>
+      <label class="field">Описание
+        <textarea id="cg-desc" maxlength="120" placeholder="Кратко, что это за игра"></textarea>
+      </label>
+      <div class="row2">
+        <label class="field">Эмодзи
+          <input id="cg-emoji" maxlength="4" value="🎮" placeholder="🎮">
+        </label>
+        <label class="field">Единица счёта
+          <input id="cg-unit" maxlength="12" value="очк." placeholder="очк. / сек. / зн/мин">
+        </label>
+      </div>
+      <label class="field">Порядок рекорда
+        <select id="cg-order">
+          <option value="high">Больше = лучше (очки)</option>
+          <option value="low">Меньше = лучше (время)</option>
+        </select>
+      </label>
+      <div class="field">HTML-файл игры
+        <div class="file-pick" id="cg-file-pick">
+          <span>📄 Выбрать .html</span>
+          <span class="fname" id="cg-fname">файл не выбран</span>
+          <input type="file" id="cg-file" accept=".html,.htm,text/html" title="Выбрать HTML-файл">
+        </div>
+        <div class="hint">Максимум ~1.5 МБ. Файл хранится только в твоём браузере (localStorage).</div>
+      </div>
+      <div class="error" id="cg-error"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn primary" id="cg-submit">Добавить в лаунчер</button>
+      </div>
+    </div>
+
+    <!-- Поделиться -->
+    <div class="cg-pane" id="cg-pane-share">
+      <p style="color:var(--muted);font-size:.88rem;margin-bottom:12px;line-height:1.4">
+        Выбери игру → <b style="color:#fff">«Создать ссылку»</b> → скопируй и отправь другу
+        (Telegram, WhatsApp и т.д.). Друг откроет ссылку — игра сама появится в лаунчере.
+      </p>
+      <div id="share-game-list" class="share-game-list"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn primary" id="share-create" disabled>🔗 Создать ссылку</button>
+      </div>
+      <div class="share-result" id="share-result">
+        <label>Короткая ссылка — отправь её другу</label>
+        <input type="text" id="share-link" readonly>
+        <div class="copy-row">
+          <button type="button" class="btn primary" id="share-copy">📋 Копировать ссылку</button>
+        </div>
+        <p style="color:var(--muted);font-size:.78rem;margin-top:10px;line-height:1.35">
+          Ссылка действует несколько дней. Игра хранится не на нашем сайте, а на бесплатном временном хостинге.
+        </p>
+      </div>
+      <div class="error" id="share-error"></div>
+    </div>
+
+    <!-- Импорт -->
+    <div class="cg-pane" id="cg-pane-import">
+      <p style="color:var(--muted);font-size:.88rem;margin-bottom:12px;line-height:1.4">
+        Тебе прислали ссылку на игру? Вставь её сюда — или просто открой ссылку в браузере,
+        лаунчер добавит игру сам.
+      </p>
+      <label class="field import-box">Ссылка на игру
+        <textarea id="import-input" placeholder="Вставь ссылку целиком…"></textarea>
+      </label>
+      <div class="error" id="import-error"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn primary" id="import-submit">Добавить игру</button>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:16px">
+      <button type="button" class="btn" data-close>Закрыть</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -225,13 +409,13 @@ const games = [
 
 /* ============================================================
    4. СЛОЙ ДАННЫХ (DB) — всё хранение в одном месте
-   ОТВЕЧАЕТ ЗА: пользователей, пароли, сессию и рекорды. Только этот объект работает с localStorage.
+   ОТВЕЧАЕТ ЗА: пользователей, пароли, сессию, рекорды и локальные игры.
    Сейчас данные лежат в localStorage браузера. Все методы async,
    поэтому позже их можно заменить на fetch() к серверу (Firebase,
    Supabase, свой API), не трогая остальной код.
    ============================================================ */
 const DB = {
-  K: { users:"aig_users_v1", records:"aig_records_v1", session:"aig_session_v1" },
+  K: { users:"aig_users_v1", records:"aig_records_v1", session:"aig_session_v1", custom:"aig_custom_games_v1" },
 
   read(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } },
   write(key, value)   { localStorage.setItem(key, JSON.stringify(value)); },
@@ -309,6 +493,32 @@ const DB = {
       if (rec && users[key]) rows.push({ key, name: users[key].name, best: rec.best });
     }
     return rows.sort((a, b) => game.order === "low" ? a.best - b.best : b.best - a.best).slice(0, 20);
+  },
+
+  // ——— Локальные (пользовательские) игры ———
+  // ОТВЕЧАЕТ ЗА: чтение списка своих HTML-игр из localStorage
+  getCustomGames() {
+    return this.read(this.K.custom, []);
+  },
+
+  // ОТВЕЧАЕТ ЗА: сохранение новой пользовательской игры
+  addCustomGame(game) {
+    const list = this.getCustomGames();
+    list.push(game);
+    try {
+      this.write(this.K.custom, list);
+    } catch (e) {
+      // откат в памяти не нужен — list локальный; пробрасываем
+      throw e;
+    }
+    return list;
+  },
+
+  // ОТВЕЧАЕТ ЗА: удаление пользовательской игры по id
+  removeCustomGame(id) {
+    const list = this.getCustomGames().filter(g => g.id !== id);
+    this.write(this.K.custom, list);
+    return list;
   }
 };
 
@@ -338,10 +548,19 @@ let authMode = "login";    // "login" | "register"
 // ОТВЕЧАЕТ ЗА: перерисовку верхней панели (гость / вошедший игрок)
 function renderTopbar() {
   const bar = $("topbar");
-  bar.innerHTML = `<button class="btn" id="lb-btn">Рекорды</button>` + (user
+  const right = user
     ? `<span class="user-chip">${user.name}</span><button class="btn" id="logout-btn">Выйти</button>`
-    : `<button class="btn primary" id="login-btn">Войти</button>`);
+    : `<button class="btn primary" id="login-btn">Войти</button>`;
+  bar.innerHTML =
+    `<div class="topbar-left">
+      <button class="btn mine" id="custom-btn">🎮 Мои игры</button>
+    </div>
+    <div class="topbar-right">
+      <button class="btn" id="lb-btn">Рекорды</button>
+      ${right}
+    </div>`;
   $("lb-btn").onclick = openLeaderboard;
+  $("custom-btn").onclick = openCustomGames;
   if (user) $("logout-btn").onclick = () => { DB.logout(); user = null; renderTopbar(); refreshBadges(); toast("Вы вышли из аккаунта"); };
   else $("login-btn").onclick = () => openAuth("login");
 }
@@ -372,42 +591,76 @@ $("auth-submit").addEventListener("click", submitAuth);
 ["auth-user", "auth-pass"].forEach(id => $(id).addEventListener("keydown", e => { if (e.key === "Enter") submitAuth(); }));
 
 /* ============================================================
-   7. КАРТОЧКИ ИГР (с картинками вместо эмодзи)
-   ОТВЕЧАЕТ ЗА: создание карточек из списка games и подписи «Твой рекорд».
+   7. КАРТОЧКИ ИГР (с картинками вместо эмодзи) + пользовательские
+   ОТВЕЧАЕТ ЗА: создание карточек из списка games + custom и подписи «Твой рекорд».
    ============================================================ */
 const gamesList = $("games-list");
 const badges = {};  // id игры -> элемент «Твой рекорд»
+let customBlobUrls = {}; // id -> object URL (чтобы отзывать при удалении/закрытии)
 
-games.forEach(game => {
+// Полный список: встроенные + локальные
+function allGames() {
+  const custom = DB.getCustomGames().map(g => ({
+    ...g,
+    cls: "custom",
+    isCustom: true
+  }));
+  return [...games, ...custom];
+}
+
+function clearGamesList() {
+  gamesList.innerHTML = "";
+  Object.keys(badges).forEach(k => delete badges[k]);
+}
+
+function renderGameCard(game) {
   const card = document.createElement("article");
-  card.className = `game-card ${game.cls}`;
+  card.className = `game-card ${game.cls}${game.isCustom ? " custom" : ""}`;
   card.tabIndex = 0;
   card.setAttribute("role", "button");
   card.setAttribute("aria-label", `Открыть игру ${game.title}`);
   card.innerHTML = `
-    <div class="game-cover"><span>${game.emoji}</span></div>
+    ${game.isCustom ? '<span class="custom-badge">Моя</span>' : ""}
+    <div class="game-cover"><span>${game.emoji || "🎮"}</span></div>
     <div class="game-info">
-      <h3>${game.title}</h3>
-      <p>${game.description}</p>
+      <h3>${escapeHtml(game.title)}</h3>
+      <p>${escapeHtml(game.description || "")}</p>
       <div class="best"></div>
       <span class="play" aria-hidden="true">→</span>
     </div>`;
 
-  // Картинка обложки: пока не загрузилась/не найдена — виден эмодзи
-  const img = new Image();
-  img.alt = ""; img.loading = "lazy";
-  img.onload = () => { card.querySelector(".game-cover span").remove(); card.querySelector(".game-cover").appendChild(img); };
-  img.src = game.cover;
+  // Картинка обложки только у встроенных игр
+  if (game.cover && !game.isCustom) {
+    const img = new Image();
+    img.alt = ""; img.loading = "lazy";
+    img.onload = () => {
+      const span = card.querySelector(".game-cover span");
+      if (span) span.remove();
+      card.querySelector(".game-cover").appendChild(img);
+    };
+    img.src = game.cover;
+  }
 
   badges[game.id] = card.querySelector(".best");
   card.addEventListener("click", () => openGame(game));
   card.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openGame(game); } });
   gamesList.appendChild(card);
-});
+}
+
+function renderAllCards() {
+  clearGamesList();
+  allGames().forEach(renderGameCard);
+  refreshBadges();
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
 
 // ОТВЕЧАЕТ ЗА: подписи «Твой рекорд» на карточках (после входа/выхода/нового рекорда)
 async function refreshBadges() {
-  for (const g of games) {
+  for (const g of allGames()) {
+    if (!badges[g.id]) continue;
     const best = user ? await DB.getBest(user.key, g.id) : null;
     badges[g.id].textContent = best != null ? `Твой рекорд: ${fmt(g, best)}` : "";
   }
@@ -418,11 +671,14 @@ async function refreshBadges() {
    ОТВЕЧАЕТ ЗА: переключение меню и экрана игры, кнопку «Назад», клавишу Esc.
    ============================================================ */
 let currentGame = null;
+let currentBlobUrl = null;
 const frame = $("game-frame");
 
 async function updateGameBest() {
   const best = currentGame && user ? await DB.getBest(user.key, currentGame.id) : null;
-  $("game-best").textContent = user ? (best != null ? `Рекорд: ${fmt(currentGame, best)}` : "Рекорда пока нет") : "Гость: рекорды не сохраняются";
+  $("game-best").textContent = user
+    ? (best != null ? `Рекорд: ${fmt(currentGame, best)}` : "Рекорда пока нет")
+    : "Гость: рекорды не сохраняются";
 }
 
 // ОТВЕЧАЕТ ЗА: запуск выбранной игры в iframe
@@ -431,8 +687,22 @@ function openGame(game) {
   $("menu").style.display = "none";
   $("game-screen").style.display = "flex";
   $("game-title").textContent = game.title;
-  frame.src = game.file;
   document.body.style.overflow = "hidden";
+
+  // Освобождаем предыдущий blob URL
+  if (currentBlobUrl) {
+    URL.revokeObjectURL(currentBlobUrl);
+    currentBlobUrl = null;
+  }
+
+  if (game.isCustom && game.html) {
+    const blob = new Blob([game.html], { type: "text/html;charset=utf-8" });
+    currentBlobUrl = URL.createObjectURL(blob);
+    frame.src = currentBlobUrl;
+  } else {
+    frame.src = game.file;
+  }
+
   updateGameBest();
   if (!user) toast("Войдите, чтобы сохранять рекорды");
 }
@@ -443,6 +713,10 @@ function closeGame() {
   $("game-screen").style.display = "none";
   $("menu").style.display = "block";
   frame.src = "";
+  if (currentBlobUrl) {
+    URL.revokeObjectURL(currentBlobUrl);
+    currentBlobUrl = null;
+  }
   document.body.style.overflow = "";
   refreshBadges();
 }
@@ -475,7 +749,7 @@ window.addEventListener("message", async e => {
 
 /* ============================================================
    10. ТАБЛИЦА РЕКОРДОВ
-   ОТВЕЧАЕТ ЗА: окно рекордов. Изначально пустое; игры и игроки появляются по мере рекордов.
+   ОТВЕЧАЕТ ЗА: окно рекордов. Включает и встроенные, и пользовательские игры.
    ============================================================ */
 $("lb-game").addEventListener("change", renderLeaderboard);
 
@@ -483,7 +757,8 @@ $("lb-game").addEventListener("change", renderLeaderboard);
 // в которых уже есть хотя бы один рекорд. Если рекордов нет вообще — список скрыт.
 async function openLeaderboard() {
   const withRecords = await DB.gamesWithRecords(), sel = $("lb-game"), prev = sel.value;
-  sel.innerHTML = games.map((g, i) => withRecords.includes(g.id) ? `<option value="${i}">${g.title}</option>` : "").join("");
+  const all = allGames();
+  sel.innerHTML = all.map((g, i) => withRecords.includes(g.id) ? `<option value="${i}">${escapeHtml(g.title)}</option>` : "").join("");
   if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
   sel.parentElement.style.display = withRecords.length ? "" : "none";
   openOverlay("lb-overlay"); renderLeaderboard();
@@ -492,19 +767,525 @@ async function openLeaderboard() {
 // ОТВЕЧАЕТ ЗА: отрисовку таблицы выбранной игры (или пустого состояния)
 async function renderLeaderboard() {
   const body = $("lb-body");
-  if (!$("lb-game").options.length) { body.innerHTML = `<div class="empty">Рекордов пока нет. Они появятся, как только кто-нибудь начнёт играть.</div>`; return; }
-  const game = games[$("lb-game").value], rows = await DB.leaderboard(game);
-  if (!rows.length) { body.innerHTML = `<div class="empty">Здесь пока пусто. Сыграйте первым.</div>`; return; }
+  if (!$("lb-game").options.length) {
+    body.innerHTML = `<div class="empty">Рекордов пока нет. Они появятся, как только кто-нибудь начнёт играть.</div>`;
+    return;
+  }
+  const game = allGames()[$("lb-game").value], rows = await DB.leaderboard(game);
+  if (!rows.length) {
+    body.innerHTML = `<div class="empty">Здесь пока пусто. Сыграйте первым.</div>`;
+    return;
+  }
   body.innerHTML = `<table><tr><th>#</th><th>Игрок</th><th>Результат</th></tr>` +
-    rows.map((r, i) => `<tr class="${user && r.key === user.key ? "me" : ""}"><td>${i + 1}</td><td>${r.name}</td><td>${fmt(game, r.best)}</td></tr>`).join("") + `</table>`;
+    rows.map((r, i) => `<tr class="${user && r.key === user.key ? "me" : ""}"><td>${i + 1}</td><td>${escapeHtml(r.name)}</td><td>${fmt(game, r.best)}</td></tr>`).join("") + `</table>`;
 }
 
 /* ============================================================
-   11. СТАРТ
-   ОТВЕЧАЕТ ЗА: первый запуск страницы (рисует панель и подписи рекордов).
+   11. МОИ ИГРЫ (локальное добавление HTML)
+   ОТВЕЧАЕТ ЗА: окно «Мои игры», загрузку файла, сохранение в localStorage,
+   появление в сетке и удаление.
+   ============================================================ */
+const MAX_HTML_BYTES = 1.5 * 1024 * 1024;
+let pendingFile = null;
+let shareSelectedId = null;
+
+/* ——— вкладки внутри «Мои игры» ——— */
+function setCgTab(name) {
+  document.querySelectorAll("#cg-tabs .btn").forEach(b => b.classList.toggle("active", b.dataset.cg === name));
+  document.querySelectorAll(".cg-pane").forEach(p => p.classList.toggle("active", p.id === "cg-pane-" + name));
+  if (name === "share") renderShareList();
+  if (name === "list") renderCustomList();
+}
+document.querySelectorAll("#cg-tabs .btn").forEach(b => {
+  b.addEventListener("click", () => setCgTab(b.dataset.cg));
+});
+
+function openCustomGames() {
+  $("cg-error").textContent = "";
+  $("share-error").textContent = "";
+  $("import-error").textContent = "";
+  pendingFile = null;
+  shareSelectedId = null;
+  $("cg-fname").textContent = "файл не выбран";
+  $("cg-title").value = "";
+  $("cg-desc").value = "";
+  $("cg-emoji").value = "🎮";
+  $("cg-unit").value = "очк.";
+  $("cg-order").value = "high";
+  try { $("cg-file").value = ""; } catch (_) {}
+  if ($("import-input")) $("import-input").value = "";
+  if ($("share-result")) $("share-result").classList.remove("show");
+  setCgTab("list");
+  renderCustomList();
+  openOverlay("custom-overlay");
+}
+
+function renderCustomList() {
+  const list = DB.getCustomGames();
+  const el = $("custom-list");
+  if (!list.length) {
+    el.innerHTML = `<div class="empty">Пока нет своих игр. Перейди во вкладку «Добавить» или «Импорт».</div>`;
+    return;
+  }
+  el.innerHTML = list.map(g => `
+    <div class="custom-item">
+      <span class="emoji">${g.emoji || "🎮"}</span>
+      <div class="meta">
+        <strong>${escapeHtml(g.title)}</strong>
+        <span>${escapeHtml(g.description || "")} · ${g.unit} · ${g.order === "low" ? "меньше=лучше" : "больше=лучше"}</span>
+      </div>
+      <button type="button" class="btn danger" data-del="${g.id}">Удалить</button>
+    </div>`).join("");
+  el.querySelectorAll("[data-del]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-del");
+      if (!confirm("Удалить эту игру из лаунчера?")) return;
+      DB.removeCustomGame(id);
+      renderCustomList();
+      renderAllCards();
+      toast("Игра удалена");
+    });
+  });
+}
+
+/* ——— добавление файла ——— */
+function onCustomFileChosen() {
+  const input = $("cg-file");
+  const f = input.files && input.files[0] ? input.files[0] : null;
+  pendingFile = f;
+  $("cg-fname").textContent = f ? f.name : "файл не выбран";
+  $("cg-error").textContent = "";
+  if (f && !$("cg-title").value.trim()) {
+    $("cg-title").value = f.name.replace(/\.html?$/i, "").slice(0, 40);
+  }
+}
+$("cg-file").addEventListener("change", onCustomFileChosen);
+
+(function () {
+  const zone = $("cg-file-pick");
+  if (!zone) return;
+  ["dragenter", "dragover"].forEach(ev => zone.addEventListener(ev, e => {
+    e.preventDefault(); e.stopPropagation();
+    zone.style.borderColor = "var(--cyan)";
+  }));
+  ["dragleave", "drop"].forEach(ev => zone.addEventListener(ev, e => {
+    e.preventDefault(); e.stopPropagation();
+    zone.style.borderColor = "";
+  }));
+  zone.addEventListener("drop", e => {
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!f) return;
+    try {
+      const dt = new DataTransfer();
+      dt.items.add(f);
+      $("cg-file").files = dt.files;
+      onCustomFileChosen();
+    } catch (_) {
+      pendingFile = f;
+      $("cg-fname").textContent = f.name;
+      if (!$("cg-title").value.trim()) {
+        $("cg-title").value = f.name.replace(/\.html?$/i, "").slice(0, 40);
+      }
+    }
+  });
+})();
+
+function readFileAsText(file) {
+  if (file.text) return file.text();
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result || ""));
+    r.onerror = () => reject(new Error("Не удалось прочитать файл"));
+    r.readAsText(file, "utf-8");
+  });
+}
+
+function saveCustomGameObject(game) {
+  try {
+    DB.addCustomGame(game);
+  } catch (storageErr) {
+    const name = storageErr && storageErr.name;
+    if (name === "QuotaExceededError" || name === "NS_ERROR_DOM_QUOTA_REACHED") {
+      throw new Error("Не хватает места в браузере (localStorage). Удали старые игры или возьми файл поменьше.");
+    }
+    throw new Error("Не удалось сохранить: " + (storageErr.message || storageErr));
+  }
+}
+
+$("cg-submit").addEventListener("click", async () => {
+  const err = $("cg-error");
+  err.textContent = "";
+  try {
+    const title = $("cg-title").value.trim();
+    if (title.length < 2) throw new Error("Укажи название (минимум 2 символа)");
+    const inputFile = $("cg-file").files && $("cg-file").files[0];
+    const file = pendingFile || inputFile;
+    if (!file) throw new Error("Выбери HTML-файл игры");
+    if (file.size > MAX_HTML_BYTES) throw new Error("Файл слишком большой (макс. 1.5 МБ)");
+    const html = await readFileAsText(file);
+    if (!html || html.length < 20) throw new Error("Файл пустой или слишком короткий");
+    const id = "custom_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+    const game = {
+      id, title,
+      description: $("cg-desc").value.trim() || "Пользовательская игра",
+      emoji: ($("cg-emoji").value.trim() || "🎮").slice(0, 4),
+      unit: ($("cg-unit").value.trim() || "очк.").slice(0, 12),
+      order: $("cg-order").value === "low" ? "low" : "high",
+      html, isCustom: true, addedAt: Date.now()
+    };
+    saveCustomGameObject(game);
+    renderCustomList();
+    renderAllCards();
+    toast("Игра «" + title + "» добавлена");
+    pendingFile = null;
+    try { $("cg-file").value = ""; } catch (_) {}
+    $("cg-fname").textContent = "файл не выбран";
+    $("cg-title").value = "";
+    $("cg-desc").value = "";
+    setCgTab("list");
+  } catch (e) {
+    err.textContent = e.message || String(e);
+  }
+});
+
+/* ——— сжатие / распаковка ——— */
+function toBase64Url(bytes) {
+  let bin = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+  }
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function fromBase64Url(str) {
+  str = str.replace(/-/g, "+").replace(/_/g, "/");
+  while (str.length % 4) str += "=";
+  const bin = atob(str);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+async function compressPayload(obj) {
+  const json = JSON.stringify(obj);
+  if (typeof CompressionStream === "function") {
+    const stream = new Blob([json]).stream().pipeThrough(new CompressionStream("gzip"));
+    const buf = await new Response(stream).arrayBuffer();
+    return "AIG1." + toBase64Url(new Uint8Array(buf));
+  }
+  return "AIG0." + toBase64Url(new TextEncoder().encode(json));
+}
+
+async function decompressPayload(code) {
+  code = String(code || "").trim().replace(/\s+/g, "");
+  if (!code.startsWith("AIG0.") && !code.startsWith("AIG1.")) {
+    throw new Error("Неверный формат данных игры");
+  }
+  const ver = code.slice(0, 4);
+  const data = fromBase64Url(code.slice(5));
+  let json;
+  if (ver === "AIG1") {
+    if (typeof DecompressionStream !== "function") {
+      throw new Error("Обнови браузер — нужна поддержка gzip");
+    }
+    const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream("gzip"));
+    json = await new Response(stream).text();
+  } else {
+    json = new TextDecoder().decode(data);
+  }
+  const obj = JSON.parse(json);
+  if (!obj || !obj.html || !obj.title) throw new Error("В данных нет игры");
+  return obj;
+}
+
+function safeFileName(title) {
+  const s = String(title || "game").replace(/[\\/:*?"<>|]+/g, "").replace(/\s+/g, "_").trim().slice(0, 30);
+  return (s || "game") + ".aigame";
+}
+
+function launcherBaseUrl() {
+  return location.href.split("#")[0].split("?")[0];
+}
+
+function makeShareLink(remoteUrl) {
+  return launcherBaseUrl() + "#aig=" + encodeURIComponent(remoteUrl);
+}
+
+/* Загрузка на временный хостинг → короткая ссылка */
+async function uploadGameBlob(blob, filename) {
+  const errors = [];
+
+  // 1) litterbox (72 часа)
+  try {
+    const fd = new FormData();
+    fd.append("reqtype", "fileupload");
+    fd.append("time", "72h");
+    fd.append("fileToUpload", blob, filename);
+    const res = await fetch("https://litterbox.catbox.moe/resources/internals/api.php", {
+      method: "POST",
+      body: fd
+    });
+    const text = (await res.text()).trim();
+    if (res.ok && /^https?:\/\//i.test(text)) return text;
+    errors.push("litterbox: " + text.slice(0, 80));
+  } catch (e) {
+    errors.push("litterbox: " + (e.message || e));
+  }
+
+  // 2) catbox (постоянно)
+  try {
+    const fd = new FormData();
+    fd.append("reqtype", "fileupload");
+    fd.append("fileToUpload", blob, filename);
+    const res = await fetch("https://catbox.moe/user/api.php", { method: "POST", body: fd });
+    const text = (await res.text()).trim();
+    if (res.ok && /^https?:\/\//i.test(text)) return text;
+    errors.push("catbox: " + text.slice(0, 80));
+  } catch (e) {
+    errors.push("catbox: " + (e.message || e));
+  }
+
+  // 3) 0x0.st
+  try {
+    const fd = new FormData();
+    fd.append("file", blob, filename);
+    const res = await fetch("https://0x0.st", { method: "POST", body: fd });
+    const text = (await res.text()).trim();
+    if (res.ok && /^https?:\/\//i.test(text)) return text;
+    errors.push("0x0: " + text.slice(0, 80));
+  } catch (e) {
+    errors.push("0x0: " + (e.message || e));
+  }
+
+  console.warn("Upload failed:", errors);
+  throw new Error(
+    "Не удалось создать ссылку. Нужен интернет, и сайт лучше открывать по адресу http/https (не просто файл с компьютера). " +
+    "Если лаунчер с диска — залей его на любой хостинг или открой через Live Server."
+  );
+}
+
+async function fetchRemoteText(url) {
+  // прямой запрос
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    if (res.ok) return await res.text();
+  } catch (_) {}
+  // запасной CORS-прокси
+  const proxies = [
+    "https://api.allorigins.win/raw?url=" + encodeURIComponent(url),
+    "https://corsproxy.io/?" + encodeURIComponent(url)
+  ];
+  for (const p of proxies) {
+    try {
+      const res = await fetch(p);
+      if (res.ok) {
+        const t = await res.text();
+        if (t && t.length > 10) return t;
+      }
+    } catch (_) {}
+  }
+  throw new Error("Не удалось скачать игру по ссылке. Проверь интернет или попроси новую ссылку.");
+}
+
+/* ——— список для шаринга ——— */
+function renderShareList() {
+  const list = DB.getCustomGames();
+  const el = $("share-game-list");
+  $("share-create").disabled = true;
+  $("share-result").classList.remove("show");
+  shareSelectedId = null;
+  if (!list.length) {
+    el.innerHTML = `<div class="empty">Сначала добавь игру во вкладке «Добавить».</div>`;
+    return;
+  }
+  el.innerHTML = list.map(g => `
+    <div class="share-game-item" data-id="${g.id}">
+      <span class="emoji">${g.emoji || "🎮"}</span>
+      <div class="meta"><strong>${escapeHtml(g.title)}</strong></div>
+    </div>`).join("");
+  el.querySelectorAll(".share-game-item").forEach(item => {
+    item.addEventListener("click", () => {
+      el.querySelectorAll(".share-game-item").forEach(x => x.classList.remove("selected"));
+      item.classList.add("selected");
+      shareSelectedId = item.dataset.id;
+      $("share-create").disabled = false;
+      $("share-result").classList.remove("show");
+      $("share-error").textContent = "";
+    });
+  });
+}
+
+$("share-create").addEventListener("click", async () => {
+  const err = $("share-error");
+  const btn = $("share-create");
+  err.textContent = "";
+  $("share-result").classList.remove("show");
+  try {
+    const game = DB.getCustomGames().find(g => g.id === shareSelectedId);
+    if (!game) throw new Error("Выбери игру");
+    btn.disabled = true;
+    btn.textContent = "Создаём ссылку…";
+    const payload = {
+      v: 1,
+      title: game.title,
+      description: game.description,
+      emoji: game.emoji,
+      unit: game.unit,
+      order: game.order,
+      html: game.html
+    };
+    const code = await compressPayload(payload);
+    const blob = new Blob([code], { type: "text/plain" });
+    const remote = await uploadGameBlob(blob, safeFileName(game.title));
+    const link = makeShareLink(remote);
+    $("share-link").value = link;
+    $("share-result").classList.add("show");
+    toast("Ссылка готова");
+  } catch (e) {
+    err.textContent = e.message || String(e);
+  } finally {
+    btn.disabled = !shareSelectedId;
+    btn.textContent = "🔗 Создать ссылку";
+  }
+});
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast("Ссылка скопирована");
+  } catch (_) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+    toast("Ссылка скопирована");
+  }
+}
+$("share-copy").addEventListener("click", () => copyText($("share-link").value));
+
+/* ——— импорт из данных ——— */
+async function importGameFromObject(obj) {
+  const existing = DB.getCustomGames();
+  if (existing.some(g => g.title === obj.title && g.html && g.html.length === obj.html.length)) {
+    throw new Error("Такая игра уже есть в лаунчере");
+  }
+  const id = "custom_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+  const game = {
+    id,
+    title: String(obj.title).slice(0, 40),
+    description: String(obj.description || "Импортированная игра").slice(0, 120),
+    emoji: String(obj.emoji || "🎮").slice(0, 4),
+    unit: String(obj.unit || "очк.").slice(0, 12),
+    order: obj.order === "low" ? "low" : "high",
+    html: obj.html,
+    isCustom: true,
+    addedAt: Date.now()
+  };
+  saveCustomGameObject(game);
+  return game;
+}
+
+async function importFromShareText(raw) {
+  raw = String(raw || "").trim();
+  if (!raw) throw new Error("Вставь ссылку");
+
+  // Полная ссылка лаунчера с #aig=...
+  let remote = null;
+  const hashAig = raw.match(/#aig=([^&\s]+)/);
+  const qAig = raw.match(/[?&]aig=([^&\s]+)/);
+  if (hashAig) remote = decodeURIComponent(hashAig[1]);
+  else if (qAig) remote = decodeURIComponent(qAig[1]);
+  // Или просто URL файла на хостинге
+  else if (/^https?:\/\/\S+$/i.test(raw) && !/#aigshare=/i.test(raw)) remote = raw;
+
+  // Старый формат #aigshare=AIG1...
+  const oldShare = raw.match(/#aigshare=([A-Za-z0-9._\-]+)/);
+  if (oldShare) {
+    const obj = await decompressPayload(oldShare[1]);
+    return importGameFromObject(obj);
+  }
+  if (raw.startsWith("AIG0.") || raw.startsWith("AIG1.")) {
+    const obj = await decompressPayload(raw);
+    return importGameFromObject(obj);
+  }
+
+  if (!remote) throw new Error("Не похоже на ссылку игры. Вставь ссылку целиком.");
+
+  const body = await fetchRemoteText(remote);
+  const obj = await decompressPayload(body.trim());
+  return importGameFromObject(obj);
+}
+
+$("import-submit").addEventListener("click", async () => {
+  const err = $("import-error");
+  err.textContent = "";
+  const btn = $("import-submit");
+  try {
+    btn.disabled = true;
+    btn.textContent = "Добавляем…";
+    const game = await importFromShareText($("import-input").value);
+    renderAllCards();
+    toast("Игра «" + game.title + "» добавлена");
+    $("import-input").value = "";
+    setCgTab("list");
+    renderCustomList();
+  } catch (e) {
+    err.textContent = e.message || String(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Добавить игру";
+  }
+});
+
+/* ——— авто-импорт при открытии ссылки ——— */
+async function tryImportFromUrl() {
+  const hash = location.hash || "";
+  const search = location.search || "";
+  let remote = null;
+  let oldCode = null;
+
+  const hm = hash.match(/#aig=([^&]+)/);
+  const qm = search.match(/[?&]aig=([^&]+)/);
+  if (hm) remote = decodeURIComponent(hm[1]);
+  else if (qm) remote = decodeURIComponent(qm[1]);
+
+  const old = hash.match(/#aigshare=([A-Za-z0-9._\-]+)/);
+  if (old) oldCode = old[1];
+
+  if (!remote && !oldCode) return;
+
+  // убираем хвост из адресной строки
+  try {
+    history.replaceState(null, "", location.pathname + location.search.replace(/[?&]aig=[^&]*/g, "").replace(/\?$/, ""));
+  } catch (_) {}
+
+  try {
+    let game;
+    if (remote) {
+      const body = await fetchRemoteText(remote);
+      const obj = await decompressPayload(body.trim());
+      game = await importGameFromObject(obj);
+    } else {
+      const obj = await decompressPayload(oldCode);
+      game = await importGameFromObject(obj);
+    }
+    renderAllCards();
+    toast("Игра «" + game.title + "» добавлена из ссылки");
+  } catch (e) {
+    console.warn(e);
+    toast("Не удалось добавить игру из ссылки");
+  }
+}
+
+/* ============================================================
+   12. СТАРТ
+   ОТВЕЧАЕТ ЗА: первый запуск страницы (рисует панель и карточки).
    ============================================================ */
 renderTopbar();
-refreshBadges();
+renderAllCards();
+tryImportFromUrl();
 
 /* ------------------------------------------------------------
    КАК ПОДКЛЮЧИТЬ РЕКОРДЫ В КАЖДОЙ ИГРЕ
@@ -515,6 +1296,8 @@ refreshBadges();
    где score — переменная с результатом. Для игр с order:"low"
    (Sudoku) отправляй время в секундах. Отправлять можно сколько
    угодно раз: лаунчер сохранит только лучший результат.
+
+   То же самое работает и для пользовательских HTML-игр.
    ------------------------------------------------------------ */
 </script>
 </body>
