@@ -79,10 +79,9 @@ header { position:relative; text-align:center; padding: 8px 0 34px; }
   transform:translateY(-8px) scale(1.012); border-color:var(--accent);
   box-shadow:0 22px 55px rgba(0,0,0,.36), 0 0 30px color-mix(in srgb, var(--accent) 25%, transparent);
 }
-.game-card.custom { --accent:#59f0c4; }
 .game-card .custom-badge {
   position:absolute; top:10px; left:10px; z-index:2; padding:3px 8px; border-radius:8px;
-  background:rgba(0,0,0,.55); color:#59f0c4; font-size:.7rem; font-weight:800; letter-spacing:.02em;
+  background:rgba(0,0,0,.55); color:var(--accent, #59f0c4); font-size:.7rem; font-weight:800; letter-spacing:.02em;
 }
 
 /* [НОВОЕ] ОТВЕЧАЕТ ЗА: обложку карточки (картинка; эмодзи — запасной вариант, если файла нет) */
@@ -108,6 +107,10 @@ header { position:relative; text-align:center; padding: 8px 0 34px; }
 .soul{--accent:#d83cff}.snake{--accent:#25e99b}.space{--accent:#6cff39}.ping{--accent:#a452ff}
 .brick{--accent:#2f8dff}.chicken{--accent:#21d7ee}.iskra{--accent:#7358ff}.chick{--accent:#ffb72d}
 .ttt{--accent:#ff4caa}.billiard{--accent:#ffc72f}.crybaby{--accent:#46b8ff}.sudoku{--accent:#ff7a45}.fast{--accent:#59f0c4}
+/* палитра для пользовательских игр */
+.cg0{--accent:#59f0c4}.cg1{--accent:#ff6b9d}.cg2{--accent:#7b6cff}.cg3{--accent:#ffb84d}
+.cg4{--accent:#4ecdc4}.cg5{--accent:#ff8a5c}.cg6{--accent:#a78bfa}.cg7{--accent:#34d399}
+.cg8{--accent:#f472b6}.cg9{--accent:#60a5fa}.cg10{--accent:#fbbf24}.cg11{--accent:#2dd4bf}
 
 /* ОТВЕЧАЕТ ЗА: полноэкранный режим игры (шапка с кнопкой «Назад», рекордом и iframe) */
 #game-screen { display:none; position:fixed; inset:0; z-index:1000; flex-direction:column; background:#02040d; }
@@ -599,12 +602,21 @@ const badges = {};  // id игры -> элемент «Твой рекорд»
 let customBlobUrls = {}; // id -> object URL (чтобы отзывать при удалении/закрытии)
 
 // Полный список: встроенные + локальные
+const CUSTOM_ACCENTS = ["cg0","cg1","cg2","cg3","cg4","cg5","cg6","cg7","cg8","cg9","cg10","cg11"];
+
+function pickCustomAccent(seed) {
+  // стабильный цвет от id/строки, чтобы не прыгал после перезагрузки
+  let h = 0;
+  const s = String(seed || "");
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  return CUSTOM_ACCENTS[Math.abs(h) % CUSTOM_ACCENTS.length];
+}
+
 function allGames() {
-  const custom = DB.getCustomGames().map(g => ({
-    ...g,
-    cls: "custom",
-    isCustom: true
-  }));
+  const custom = DB.getCustomGames().map(g => {
+    const accent = g.cls && CUSTOM_ACCENTS.includes(g.cls) ? g.cls : pickCustomAccent(g.id || g.title);
+    return { ...g, cls: accent, isCustom: true };
+  });
   return [...games, ...custom];
 }
 
@@ -931,6 +943,7 @@ $("cg-submit").addEventListener("click", async () => {
       emoji: ($("cg-emoji").value.trim() || "🎮").slice(0, 4),
       unit: ($("cg-unit").value.trim() || "очк.").slice(0, 12),
       order: $("cg-order").value === "low" ? "low" : "high",
+      cls: CUSTOM_ACCENTS[Math.floor(Math.random() * CUSTOM_ACCENTS.length)],
       html, isCustom: true, addedAt: Date.now()
     };
     saveCustomGameObject(game);
@@ -1132,6 +1145,7 @@ $("share-create").addEventListener("click", async () => {
       emoji: game.emoji,
       unit: game.unit,
       order: game.order,
+      cls: game.cls,
       html: game.html
     };
     const code = await compressPayload(payload);
@@ -1179,6 +1193,9 @@ async function importGameFromObject(obj) {
     emoji: String(obj.emoji || "🎮").slice(0, 4),
     unit: String(obj.unit || "очк.").slice(0, 12),
     order: obj.order === "low" ? "low" : "high",
+    cls: (obj.cls && CUSTOM_ACCENTS.includes(obj.cls))
+      ? obj.cls
+      : CUSTOM_ACCENTS[Math.floor(Math.random() * CUSTOM_ACCENTS.length)],
     html: obj.html,
     isCustom: true,
     addedAt: Date.now()
